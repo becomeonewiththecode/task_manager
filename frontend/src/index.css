@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans antialiased;
+  }
+}
+
+/* Ocean theme */
+.theme-ocean {
+  --tw-color-primary-50: #ecfeff;
+  --tw-color-primary-600: #0891b2;
+  --tw-color-primary-700: #0e7490;
+}
+
+/* Forest theme */
+.theme-forest {
+  --tw-color-primary-50: #f0fdf4;
+  --tw-color-primary-600: #16a34a;
+  --tw-color-primary-700: #15803d;
+}

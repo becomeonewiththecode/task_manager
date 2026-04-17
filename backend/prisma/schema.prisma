@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  username          String    @unique
+  passwordHash      String
+  totpSecret        String?
+  totpEnabled       Boolean   @default(false)
+  failedLoginCount  Int       @default(0)
+  lockedUntil       DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  deletedAt         DateTime?
+
+  tasks       Task[]
+  categories  Category[]
+  sessions    Session[]
+  auditLogs   AuditLog[]
+
+  @@index([email])
+  @@index([deletedAt])
+}
+
+model Task {
+  id          String      @id @default(cuid())
+  title       String
+  description String?
+  priority    Priority    @default(MEDIUM)
+  status      TaskStatus  @default(ACTIVE)
+  dueDate     DateTime?
+  recurring   Recurring?
+  sortOrder   Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  deletedAt   DateTime?
+
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tags        TaskTag[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([dueDate])
+  @@index([createdAt])
+  @@index([deletedAt])
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  color     String   @default("#6366f1")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tasks     TaskTag[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model TaskTag {
+  taskId     String
+  categoryId String
+
+  task       Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, categoryId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  refreshToken String   @unique
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([refreshToken])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum TaskStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum Recurring {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
