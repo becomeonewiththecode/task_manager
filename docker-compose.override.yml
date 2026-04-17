@@ -10,6 +10,8 @@ services:
     command: npm run dev -- --host
     ports:
       - '3333:3333'
+    environment:
+      - BACKEND_URL=http://backend:4000
 
   backend:
     build:
@@ -17,6 +19,6 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
-    command: npm run dev
+    command: sh -c "npx prisma db push --skip-generate && npm run dev"
     environment:
       - NODE_ENV=development

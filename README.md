@@ -17,8 +17,7 @@ docker compose exec backend npm run db:migrate
 docker compose exec backend npm run db:seed
 
 # 4. Open
-# Frontend: http://localhost:3333
-# Backend:  http://localhost:4000
+# App: http://localhost:3333
 # Demo login: demo@example.com / Password123!
 ```
 

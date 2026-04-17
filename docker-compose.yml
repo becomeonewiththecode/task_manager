@@ -5,20 +5,16 @@ services:
     build:
       context: ./frontend
       target: production
-    ports:
-      - '3333:80'
     depends_on:
       - backend
     environment:
-      - VITE_API_URL=http://localhost:4000/api/v1
+      - VITE_API_URL=/api/v1
     restart: unless-stopped
 
   backend:
     build:
       context: ./backend
       target: production
-    ports:
-      - '4000:4000'
     depends_on:
       db:
         condition: service_healthy
@@ -45,7 +41,7 @@ services:
       - '5432:5432'
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-taskuser}']
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-taskuser} -d ${POSTGRES_DB:-taskmanager}']
       interval: 10s
       timeout: 5s
       retries: 5
