@@ -7,7 +7,14 @@ import { useUiStore } from '@/store/uiStore';
 import { usersService } from '@/services/users.service';
 import { authService } from '@/services/auth.service';
 import { ActivityFeed } from '@/components/ActivityFeed';
-import type { ShortcutConfig, AuditLogEntry } from '@/types';
+import type { ShortcutConfig, AuditLogEntry, Theme } from '@/types';
+
+const THEMES: { value: Theme; label: string; description: string }[] = [
+  { value: 'light', label: 'Light', description: 'Clean white interface' },
+  { value: 'dark', label: 'Dark', description: 'Easy on the eyes' },
+  { value: 'ocean', label: 'Ocean', description: 'Cool blue tones' },
+  { value: 'forest', label: 'Forest', description: 'Natural green palette' },
+];
 
 const SHORTCUT_LABELS: Record<keyof ShortcutConfig, string> = {
   newTask: 'New task',
@@ -20,10 +27,10 @@ const SHORTCUT_LABELS: Record<keyof ShortcutConfig, string> = {
 export function SettingsPage() {
   const user = useAuthStore((s) => s.user);
   const setUser = useAuthStore((s) => s.setUser);
-  const { shortcuts, setShortcut } = useUiStore();
+  const { shortcuts, setShortcut, theme, setTheme } = useUiStore();
   const [capturingKey, setCapturingKey] = useState<keyof ShortcutConfig | null>(null);
   const [totpSetup, setTotpSetup] = useState<{ qrDataUrl: string; secret: string } | null>(null);
-  const [activeTab, setActiveTab] = useState<'account' | 'security' | 'shortcuts' | 'data' | 'activity'>('account');
+  const [activeTab, setActiveTab] = useState<'account' | 'security' | 'appearance' | 'shortcuts' | 'data' | 'activity'>('account');
   const [importing, setImporting] = useState(false);
   const [activity, setActivity] = useState<AuditLogEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -140,7 +147,7 @@ export function SettingsPage() {
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h2>
 
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
-        {(['account', 'security', 'shortcuts', 'data', 'activity'] as const).map((tab) => (
+        {(['account', 'security', 'appearance', 'shortcuts', 'data', 'activity'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -260,6 +267,33 @@ export function SettingsPage() {
                 </button>
               </form>
             )}
+          </section>
+        </div>
+      )}
+
+      {activeTab === 'appearance' && (
+        <div className="space-y-6">
+          <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Theme</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Choose how the app looks.</p>
+            <div className="grid grid-cols-2 gap-3">
+              {THEMES.map((t) => (
+                <button
+                  key={t.value}
+                  onClick={() => setTheme(t.value)}
+                  className={`flex flex-col items-start gap-0.5 rounded-xl border-2 p-4 text-left transition-colors ${
+                    theme === t.value
+                      ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <span className={`text-sm font-medium ${theme === t.value ? 'text-primary-700 dark:text-primary-400' : 'text-gray-900 dark:text-gray-100'}`}>
+                    {t.label}
+                  </span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">{t.description}</span>
+                </button>
+              ))}
+            </div>
           </section>
         </div>
       )}

@@ -37,7 +37,7 @@ Users can
 ### UI / Themes
 - ✅ Mobile-responsive design
 - ✅ Dark mode toggle with system preference detection
-- ❌ 4 modern themes — ThemeProvider exists but full theme set needs verification
+- ✅ 4 modern themes — Light, Dark, Ocean, Forest; theme selector in Settings > Appearance tab
 - ✅ Drag and drop to reorder tasks and adjust priorities (dnd-kit)
 
 ### Task Management
@@ -175,7 +175,7 @@ Users can
 - ⏭ File attachments with cloud storage
 - ⏭ Third-party integrations (Slack, Google Calendar, Trello import)
 - ⏭ Voice input for task title (hook + UI built; blocked by HTTP — Web Speech API requires HTTPS)
-- ⏭ Customizable keyboard shortcuts (useKeyboardShortcuts scaffolded)
+- ✅ Customizable keyboard shortcuts (Settings > Shortcuts tab — click to reassign any key)
 - ⏭ AI-powered task suggestions
 - ⏭ Custom fields per task
 - ⏭ CI/CD pipeline
@@ -189,7 +189,7 @@ Users can
 3. ❌ Background job queue (Bull/BullMQ) — prerequisite for notifications and recurring tasks
 4. ❌ OpenAPI/Swagger documentation
 5. ❌ Additional i18n locales beyond English
-6. ❌ 4 themes — verify/complete theme switcher
+6. ✅ 4 themes — Light, Dark, Ocean, Forest all functional; moved to Settings > Appearance
 7. ❌ Test coverage (backend unit + API tests, frontend component + E2E tests)
 8. ❌ Docker health checks and resource limits per service
 9. ❌ Centralized env config validation (`/src/config/`)

@@ -36,6 +36,16 @@ export const useUiStore = create<UiState>()(
       setShortcut: (action, key) =>
         set((s) => ({ shortcuts: { ...s.shortcuts, [action]: key } })),
     }),
-    { name: 'ui', partialize: (s) => ({ theme: s.theme, shortcuts: s.shortcuts }) },
+    {
+      name: 'ui',
+      partialize: (s) => ({ theme: s.theme, shortcuts: s.shortcuts }),
+      onRehydrateStorage: () => (state) => {
+        if (!state) return;
+        const root = document.documentElement;
+        root.classList.remove('dark', 'theme-ocean', 'theme-forest');
+        if (state.theme === 'dark') root.classList.add('dark');
+        else if (state.theme !== 'light') root.classList.add(`theme-${state.theme}`);
+      },
+    },
   ),
 );

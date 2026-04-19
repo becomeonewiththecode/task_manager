@@ -7,12 +7,14 @@ export default {
     extend: {
       colors: {
         primary: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
+          50: 'var(--color-primary-50)',
+          100: 'var(--color-primary-100)',
+          500: 'var(--color-primary-500)',
+          600: 'var(--color-primary-600)',
+          700: 'var(--color-primary-700)',
         },
+        page: 'var(--color-bg-page)',
+        surface: 'var(--color-bg-surface)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

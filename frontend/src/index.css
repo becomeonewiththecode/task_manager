@@ -3,6 +3,16 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --color-primary-50: #eef2ff;
+    --color-primary-100: #e0e7ff;
+    --color-primary-500: #6366f1;
+    --color-primary-600: #4f46e5;
+    --color-primary-700: #4338ca;
+    --color-bg-page: #f9fafb;
+    --color-bg-surface: #ffffff;
+  }
+
   body {
     @apply font-sans antialiased;
   }
@@ -10,14 +20,22 @@
 
 /* Ocean theme */
 .theme-ocean {
-  --tw-color-primary-50: #ecfeff;
-  --tw-color-primary-600: #0891b2;
-  --tw-color-primary-700: #0e7490;
+  --color-primary-50: #ecfeff;
+  --color-primary-100: #cffafe;
+  --color-primary-500: #06b6d4;
+  --color-primary-600: #0891b2;
+  --color-primary-700: #0e7490;
+  --color-bg-page: #f0f9ff;
+  --color-bg-surface: #f8fdff;
 }
 
 /* Forest theme */
 .theme-forest {
-  --tw-color-primary-50: #f0fdf4;
-  --tw-color-primary-600: #16a34a;
-  --tw-color-primary-700: #15803d;
+  --color-primary-50: #f0fdf4;
+  --color-primary-100: #dcfce7;
+  --color-primary-500: #22c55e;
+  --color-primary-600: #16a34a;
+  --color-primary-700: #15803d;
+  --color-bg-page: #f0fdf4;
+  --color-bg-surface: #f7fef9;
 }
