@@ -239,8 +239,8 @@ export function SettingsPage() {
                   type="text"
                   inputMode="numeric"
                   maxLength={6}
-                  placeholder="Enter code to disable"
-                  className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 w-44 tracking-widest"
+                  placeholder="6-digit code"
+                  className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 w-36 tracking-widest"
                 />
                 <button type="submit" disabled={totpForm.formState.isSubmitting}
                   className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50">

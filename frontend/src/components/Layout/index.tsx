@@ -2,6 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useAuth } from '@/hooks/useAuth';
 import type { Theme } from '@/types';
 
 const NAV_LINKS = [
@@ -20,6 +21,7 @@ const THEMES: { value: Theme; label: string }[] = [
 ];
 
 export function Layout() {
+  useAuth();
   const logout = useAuthStore((s) => s.logout);
   const { theme, setTheme, sidebarOpen, toggleSidebar } = useUiStore();
   const { isOnline } = useOnlineStatus();
