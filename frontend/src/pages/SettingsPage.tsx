@@ -6,7 +6,8 @@ import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
 import { usersService } from '@/services/users.service';
 import { authService } from '@/services/auth.service';
-import type { ShortcutConfig } from '@/types';
+import { ActivityFeed } from '@/components/ActivityFeed';
+import type { ShortcutConfig, AuditLogEntry } from '@/types';
 
 const SHORTCUT_LABELS: Record<keyof ShortcutConfig, string> = {
   newTask: 'New task',
@@ -22,8 +23,10 @@ export function SettingsPage() {
   const { shortcuts, setShortcut } = useUiStore();
   const [capturingKey, setCapturingKey] = useState<keyof ShortcutConfig | null>(null);
   const [totpSetup, setTotpSetup] = useState<{ qrDataUrl: string; secret: string } | null>(null);
-  const [activeTab, setActiveTab] = useState<'account' | 'security' | 'shortcuts' | 'data'>('account');
+  const [activeTab, setActiveTab] = useState<'account' | 'security' | 'shortcuts' | 'data' | 'activity'>('account');
   const [importing, setImporting] = useState(false);
+  const [activity, setActivity] = useState<AuditLogEntry[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   const emailForm = useForm({ defaultValues: { email: user?.email ?? '', password: '' } });
   const passwordForm = useForm({ defaultValues: { currentPassword: '', newPassword: '', confirmPassword: '' } });
@@ -32,6 +35,15 @@ export function SettingsPage() {
   useEffect(() => {
     if (user) emailForm.reset({ email: user.email, password: '' });
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab !== 'activity') return;
+    setActivityLoading(true);
+    usersService.getActivity({ limit: 50 })
+      .then((r) => setActivity(r.entries))
+      .catch(console.error)
+      .finally(() => setActivityLoading(false));
+  }, [activeTab]);
 
   const handleEmailUpdate = async (values: { email: string; password: string }) => {
     try {
@@ -128,7 +140,7 @@ export function SettingsPage() {
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h2>
 
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700">
-        {(['account', 'security', 'shortcuts', 'data'] as const).map((tab) => (
+        {(['account', 'security', 'shortcuts', 'data', 'activity'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -339,6 +351,13 @@ export function SettingsPage() {
               />
             </label>
           </section>
+        </div>
+      )}
+
+      {activeTab === 'activity' && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Recent Activity</h3>
+          <ActivityFeed entries={activity} loading={activityLoading} />
         </div>
       )}
     </div>

@@ -48,13 +48,15 @@ Users can
 - ✅ Task templates
 - ✅ Bulk operations (BulkActionBar component)
 - ✅ Search functionality to find tasks by keyword
+- ✅ Location field per task — 📍 link opens address in Google Maps
+- ✅ Web link field per task — 🔗 link opens URL in new tab
 
 ### User Account
 - ✅ Ability to change password and username (email)
 
 ### Data
-- ❌ Export tasks to CSV or JSON
-- ❌ Import tasks from other todo apps
+- ✅ Export tasks to JSON (backup/restore via SettingsPage)
+- ✅ Import tasks from backup file (overwrites existing data on restore)
 
 ### Notifications & Reminders
 - ❌ Notification system for task reminders and due dates
@@ -66,6 +68,9 @@ Users can
 
 ### Calendar
 - ✅ Calendar view integration (CalendarPage)
+- ✅ Click any calendar day to create a new task with the date pre-filled
+- ✅ Tasks within each day sorted chronologically by due time; all-day tasks listed last
+- ✅ Due time shown on task chips in day cells and expanded-day modal
 
 ### Internationalization
 - ✅ i18n infrastructure (i18next, react-i18next)
@@ -169,7 +174,7 @@ Users can
 - ⏭ Advanced analytics with more charts and insights
 - ⏭ File attachments with cloud storage
 - ⏭ Third-party integrations (Slack, Google Calendar, Trello import)
-- ⏭ Voice input for adding tasks (useVoiceInput hook scaffolded)
+- ⏭ Voice input for task title (hook + UI built; blocked by HTTP — Web Speech API requires HTTPS)
 - ⏭ Customizable keyboard shortcuts (useKeyboardShortcuts scaffolded)
 - ⏭ AI-powered task suggestions
 - ⏭ Custom fields per task
@@ -180,14 +185,12 @@ Users can
 ## Remaining Phase 1 Work (Priority Order)
 
 1. ❌ Health check endpoint (`GET /api/health`)
-2. ❌ Export tasks to CSV / JSON
-3. ❌ Import tasks from other todo apps
-4. ❌ Notification / reminder system (frontend UI + backend trigger)
-5. ❌ Background job queue (Bull/BullMQ) — prerequisite for notifications and recurring tasks
-6. ❌ OpenAPI/Swagger documentation
-7. ❌ Additional i18n locales beyond English
-8. ❌ 4 themes — verify/complete theme switcher
-9. ❌ Test coverage (backend unit + API tests, frontend component + E2E tests)
-10. ❌ Docker health checks and resource limits per service
-11. ❌ Centralized env config validation (`/src/config/`)
-12. ❌ OAuth social login (Gmail, GitHub, Facebook)
+2. ❌ Notification / reminder system (frontend UI + backend trigger)
+3. ❌ Background job queue (Bull/BullMQ) — prerequisite for notifications and recurring tasks
+4. ❌ OpenAPI/Swagger documentation
+5. ❌ Additional i18n locales beyond English
+6. ❌ 4 themes — verify/complete theme switcher
+7. ❌ Test coverage (backend unit + API tests, frontend component + E2E tests)
+8. ❌ Docker health checks and resource limits per service
+9. ❌ Centralized env config validation (`/src/config/`)
+10. ❌ OAuth social login (Gmail, GitHub, Facebook)

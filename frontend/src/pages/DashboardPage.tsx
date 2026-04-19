@@ -1,24 +1,61 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { format, addDays, startOfDay, endOfDay } from 'date-fns';
 import { useAuthStore } from '@/store/authStore';
 import { usersService } from '@/services/users.service';
-import { ActivityFeed } from '@/components/ActivityFeed';
-import type { Stats, AuditLogEntry } from '@/types';
+import { tasksService } from '@/services/tasks.service';
+import { categoriesService } from '@/services/categories.service';
+import { TaskForm } from '@/components/TaskForm';
+import { PRIORITY_STYLES } from '@/components/TaskCard';
+import type { Stats, Task, Category } from '@/types';
+import toast from 'react-hot-toast';
 
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const [stats, setStats] = useState<Stats | null>(null);
-  const [activity, setActivity] = useState<AuditLogEntry[]>([]);
-  const [activityLoading, setActivityLoading] = useState(false);
+  const [tomorrowTasks, setTomorrowTasks] = useState<Task[]>([]);
+  const [tomorrowLoading, setTomorrowLoading] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+
+  const tomorrow = addDays(new Date(), 1);
+  const tomorrowLabel = format(tomorrow, 'EEEE, MMMM d');
 
   useEffect(() => {
     usersService.getStats().then(setStats).catch(console.error);
-    setActivityLoading(true);
-    usersService.getActivity({ limit: 10 })
-      .then((r) => setActivity(r.entries))
+    categoriesService.list().then(setCategories).catch(console.error);
+
+    setTomorrowLoading(true);
+    const from = format(startOfDay(tomorrow), "yyyy-MM-dd'T'HH:mm:ss");
+    const to = format(endOfDay(tomorrow), "yyyy-MM-dd'T'HH:mm:ss");
+    tasksService.list({ dueDateFrom: from, dueDateTo: to, limit: 50, status: 'ACTIVE' })
+      .then((r) => {
+        const sorted = r.tasks.sort((a, b) => {
+          const aD = new Date(a.dueDate!);
+          const bD = new Date(b.dueDate!);
+          const aHasTime = aD.getHours() !== 0 || aD.getMinutes() !== 0;
+          const bHasTime = bD.getHours() !== 0 || bD.getMinutes() !== 0;
+          if (aHasTime && !bHasTime) return -1;
+          if (!aHasTime && bHasTime) return 1;
+          return aD.getTime() - bD.getTime();
+        });
+        setTomorrowTasks(sorted);
+      })
       .catch(console.error)
-      .finally(() => setActivityLoading(false));
+      .finally(() => setTomorrowLoading(false));
   }, []);
+
+  const handleEditSubmit = async (data: Partial<Task> & { categoryIds?: string[] }) => {
+    if (!editingTask) return;
+    try {
+      const updated = await tasksService.update(editingTask.id, data);
+      setTomorrowTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      toast.success('Task updated');
+    } catch {
+      toast.error('Failed to update task');
+    }
+    setEditingTask(null);
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -60,6 +97,78 @@ export function DashboardPage() {
         </div>
       )}
 
+      {/* Tomorrow's Tasks */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+            Tomorrow — {tomorrowLabel}
+          </h3>
+          <Link
+            to="/calendar"
+            className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
+          >
+            View calendar →
+          </Link>
+        </div>
+
+        {tomorrowLoading ? (
+          <p className="text-sm text-gray-400 text-center py-4">Loading…</p>
+        ) : tomorrowTasks.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">No tasks scheduled for tomorrow.</p>
+        ) : (
+          <div className="space-y-2">
+            {tomorrowTasks.map((task) => {
+              const d = new Date(task.dueDate!);
+              const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
+              return (
+                <button
+                  key={task.id}
+                  onClick={() => setEditingTask(task)}
+                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
+                >
+                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[task.priority]}`}>
+                    {task.priority}
+                  </span>
+                  <span className="flex-1 text-sm text-gray-800 dark:text-gray-100 truncate">
+                    {task.title}
+                  </span>
+                  {hasTime && (
+                    <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">
+                      {format(d, 'h:mm a')}
+                    </span>
+                  )}
+                  {task.location && (
+                    <a
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="shrink-0 text-xs text-primary-600 dark:text-primary-400 hover:underline"
+                      title={task.location}
+                    >
+                      📍
+                    </a>
+                  )}
+                  {task.webLink && (
+                    <a
+                      href={task.webLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="shrink-0 text-xs text-primary-600 dark:text-primary-400 hover:underline"
+                      title={task.webLink}
+                    >
+                      🔗
+                    </a>
+                  )}
+                  <span className="shrink-0 text-gray-300 dark:text-gray-600 text-xs">✎</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-3">
         <Link
           to="/tasks"
@@ -81,10 +190,23 @@ export function DashboardPage() {
         </Link>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
-        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Recent Activity</h3>
-        <ActivityFeed entries={activity} loading={activityLoading} />
-      </div>
+      {/* Edit modal */}
+      {editingTask && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) setEditingTask(null); }}
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-4">Edit Task</h3>
+            <TaskForm
+              task={editingTask}
+              categories={categories}
+              onSubmit={handleEditSubmit}
+              onCancel={() => setEditingTask(null)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
