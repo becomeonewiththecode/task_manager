@@ -123,6 +123,35 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, activeTimerEntry, o
               <p className="mt-0.5 text-xs text-gray-500 dark:text-gray-400 truncate">{task.description}</p>
             )}
 
+            {(task.location || task.webLink) && (
+              <div className="mt-1 flex flex-wrap gap-2">
+                {task.location && (
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-0.5 max-w-[160px] truncate"
+                    title={task.location}
+                  >
+                    📍 {task.location}
+                  </a>
+                )}
+                {task.webLink && (
+                  <a
+                    href={task.webLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-primary-600 dark:text-primary-400 hover:underline flex items-center gap-0.5 max-w-[160px] truncate"
+                    title={task.webLink}
+                  >
+                    🔗 {task.webLink}
+                  </a>
+                )}
+              </div>
+            )}
+
             <div className="mt-2 flex flex-wrap gap-1.5 items-center">
               <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[task.priority]}`}>
                 {task.priority}

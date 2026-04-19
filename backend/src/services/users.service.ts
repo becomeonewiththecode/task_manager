@@ -150,12 +150,17 @@ export async function exportData(userId: string) {
 export async function importData(userId: string, backup: any) {
   const { categories = [], tasks = [], taskTemplates = [] } = backup;
 
+  // Wipe existing user data so restore overwrites rather than appends
+  await prisma.taskDependency.deleteMany({ where: { task: { userId } } });
+  await prisma.taskTag.deleteMany({ where: { task: { userId } } });
+  await prisma.timeEntry.deleteMany({ where: { userId } });
+  await prisma.task.deleteMany({ where: { userId } });
+  await prisma.category.deleteMany({ where: { userId } });
+
   const categoryIdMap = new Map<string, string>();
   for (const cat of categories) {
-    const created = await prisma.category.upsert({
-      where: { userId_name: { userId, name: cat.name } },
-      update: { color: cat.color },
-      create: { userId, name: cat.name, color: cat.color },
+    const created = await prisma.category.create({
+      data: { userId, name: cat.name, color: cat.color },
     });
     categoryIdMap.set(cat.id, created.id);
   }

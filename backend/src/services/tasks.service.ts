@@ -72,6 +72,8 @@ export interface CreateTaskInput {
   priority?: Priority;
   dueDate?: Date;
   recurring?: Recurring;
+  location?: string;
+  webLink?: string;
   categoryIds?: string[];
 }
 

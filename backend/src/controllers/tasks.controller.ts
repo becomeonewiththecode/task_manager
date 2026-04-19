@@ -38,6 +38,8 @@ export async function create(req: Request, res: Response, next: NextFunction) {
       priority: req.body.priority as Priority,
       dueDate: req.body.dueDate ? new Date(req.body.dueDate) : undefined,
       recurring: req.body.recurring as Recurring,
+      location: req.body.location,
+      webLink: req.body.webLink,
       categoryIds: req.body.categoryIds,
     });
     res.status(201).json(task);

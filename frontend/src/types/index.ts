@@ -68,6 +68,8 @@ export interface Task {
   status: TaskStatus;
   dueDate?: string;
   recurring?: Recurring;
+  location?: string;
+  webLink?: string;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;

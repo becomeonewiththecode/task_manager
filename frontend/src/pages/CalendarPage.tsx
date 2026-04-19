@@ -19,6 +19,8 @@ export function CalendarPage() {
   const [loading, setLoading] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [expandedDay, setExpandedDay] = useState<{ day: Date; tasks: Task[] } | null>(null);
+  const [creatingForDay, setCreatingForDay] = useState<Date | null>(null);
 
   useEffect(() => {
     categoriesService.list().then(setCategories).catch(console.error);
@@ -41,14 +43,13 @@ export function CalendarPage() {
   const calEnd = endOfWeek(monthEnd);
   const days = eachDayOfInterval({ start: calStart, end: calEnd });
 
-  const tasksForDay = (day: Date) =>
-    tasks.filter((t) => {
+  const tasksForDay = (day: Date) => {
+    const matched = tasks.filter((t) => {
       if (!t.dueDate) return false;
       const due = new Date(t.dueDate);
       if (isSameDay(due, day)) return true;
       if (!t.recurring) return false;
 
-      // Normalize to midnight for day-level comparisons
       const dayMid = new Date(day.getFullYear(), day.getMonth(), day.getDate());
       const dueMid = new Date(due.getFullYear(), due.getMonth(), due.getDate());
       if (dayMid < dueMid) return false;
@@ -64,6 +65,18 @@ export function CalendarPage() {
           return false;
       }
     });
+
+    return matched.sort((a, b) => {
+      const aDate = new Date(a.dueDate!);
+      const bDate = new Date(b.dueDate!);
+      const aHasTime = aDate.getHours() !== 0 || aDate.getMinutes() !== 0;
+      const bHasTime = bDate.getHours() !== 0 || bDate.getMinutes() !== 0;
+      // Timed tasks first, sorted by time; all-day (midnight) tasks at end
+      if (aHasTime && !bHasTime) return -1;
+      if (!aHasTime && bHasTime) return 1;
+      return aDate.getHours() * 60 + aDate.getMinutes() - (bDate.getHours() * 60 + bDate.getMinutes());
+    });
+  };
 
   const handleEditSubmit = async (data: Partial<Task> & { categoryIds?: string[] }) => {
     if (!editingTask) return;
@@ -89,9 +102,22 @@ export function CalendarPage() {
     setSelectedTask(null);
   };
 
+  const handleCreateSubmit = async (data: Partial<Task> & { categoryIds?: string[] }) => {
+    try {
+      const created = await tasksService.create(data);
+      setTasks((prev) => [...prev, created]);
+      toast.success('Task created');
+    } catch {
+      toast.error('Failed to create task');
+    }
+    setCreatingForDay(null);
+  };
+
   const closeModals = () => {
     setSelectedTask(null);
     setEditingTask(null);
+    setExpandedDay(null);
+    setCreatingForDay(null);
   };
 
   return (
@@ -145,35 +171,51 @@ export function CalendarPage() {
               return (
                 <div
                   key={day.toISOString()}
-                  className={`min-h-24 p-2 ${isCurrentMonth ? '' : 'bg-gray-50 dark:bg-gray-800/50'}`}
+                  onClick={() => setCreatingForDay(day)}
+                  className={`min-h-24 p-2 cursor-pointer group ${isCurrentMonth ? 'hover:bg-gray-50 dark:hover:bg-gray-700/30' : 'bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50'} transition-colors`}
                 >
-                  <div
-                    className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full mb-1 ${
-                      isToday
-                        ? 'bg-primary-600 text-white'
-                        : isCurrentMonth
-                        ? 'text-gray-700 dark:text-gray-300'
-                        : 'text-gray-400 dark:text-gray-600'
-                    }`}
-                  >
-                    {format(day, 'd')}
+                  <div className="flex items-center justify-between mb-1">
+                    <div
+                      className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${
+                        isToday
+                          ? 'bg-primary-600 text-white'
+                          : isCurrentMonth
+                          ? 'text-gray-700 dark:text-gray-300'
+                          : 'text-gray-400 dark:text-gray-600'
+                      }`}
+                    >
+                      {format(day, 'd')}
+                    </div>
+                    <span className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity text-base leading-none pr-0.5">+</span>
                   </div>
 
                   <div className="space-y-0.5">
-                    {dayTasks.slice(0, 3).map((task) => (
-                      <button
-                        key={task.id}
-                        onClick={() => setSelectedTask(task)}
-                        className={`w-full text-left text-xs px-1.5 py-0.5 rounded truncate transition-opacity hover:opacity-80 ${PRIORITY_STYLES[task.priority]} ${
-                          task.status === 'COMPLETED' ? 'opacity-50 line-through' : ''
-                        }`}
-                        title={task.title}
-                      >
-                        {task.title}
-                      </button>
-                    ))}
+                    {dayTasks.slice(0, 3).map((task) => {
+                      const d = new Date(task.dueDate!);
+                      const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
+                      return (
+                        <button
+                          key={task.id}
+                          onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                          className={`w-full text-left text-xs px-1.5 py-0.5 rounded transition-opacity hover:opacity-80 ${PRIORITY_STYLES[task.priority]} ${
+                            task.status === 'COMPLETED' ? 'opacity-50 line-through' : ''
+                          }`}
+                          title={task.title}
+                        >
+                          {hasTime && (
+                            <span className="font-semibold mr-1 shrink-0">{format(d, 'h:mm a')}</span>
+                          )}
+                          <span className="truncate">{task.title}</span>
+                        </button>
+                      );
+                    })}
                     {dayTasks.length > 3 && (
-                      <div className="text-xs text-gray-400 px-1.5">+{dayTasks.length - 3} more</div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setExpandedDay({ day, tasks: dayTasks }); }}
+                        className="text-xs text-primary-600 dark:text-primary-400 px-1.5 hover:underline"
+                      >
+                        +{dayTasks.length - 3} more
+                      </button>
                     )}
                   </div>
                 </div>
@@ -200,6 +242,26 @@ export function CalendarPage() {
               </h3>
               {selectedTask.description && (
                 <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">{selectedTask.description}</p>
+              )}
+              {selectedTask.location && (
+                <a
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(selectedTask.location)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline"
+                >
+                  📍 {selectedTask.location}
+                </a>
+              )}
+              {selectedTask.webLink && (
+                <a
+                  href={selectedTask.webLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 flex items-center gap-1 text-sm text-primary-600 dark:text-primary-400 hover:underline truncate"
+                >
+                  🔗 {selectedTask.webLink}
+                </a>
               )}
               <div className="mt-2 flex gap-2 items-center">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[selectedTask.priority]}`}>
@@ -239,6 +301,33 @@ export function CalendarPage() {
         </Modal>
       )}
 
+      {/* Day overflow modal */}
+      {expandedDay && !selectedTask && !editingTask && (
+        <Modal onClose={closeModals} title={format(expandedDay.day, 'EEEE, MMMM d')}>
+          <div className="space-y-1">
+            {expandedDay.tasks.map((task) => {
+              const d = new Date(task.dueDate!);
+              const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
+              return (
+                <button
+                  key={task.id}
+                  onClick={() => { setSelectedTask(task); setExpandedDay(null); }}
+                  className={`w-full text-left text-sm px-2 py-1.5 rounded-lg transition-opacity hover:opacity-80 ${PRIORITY_STYLES[task.priority]} ${
+                    task.status === 'COMPLETED' ? 'opacity-50 line-through' : ''
+                  }`}
+                  title={task.title}
+                >
+                  {hasTime && (
+                    <span className="font-semibold mr-2">{format(d, 'h:mm a')}</span>
+                  )}
+                  {task.title}
+                </button>
+              );
+            })}
+          </div>
+        </Modal>
+      )}
+
       {/* Edit form modal */}
       {editingTask && (
         <Modal onClose={closeModals} title="Edit Task">
@@ -246,6 +335,18 @@ export function CalendarPage() {
             task={editingTask}
             categories={categories}
             onSubmit={handleEditSubmit}
+            onCancel={closeModals}
+          />
+        </Modal>
+      )}
+
+      {/* Create task modal */}
+      {creatingForDay && !selectedTask && !editingTask && !expandedDay && (
+        <Modal onClose={closeModals} title={`New Task — ${format(creatingForDay, 'EEEE, MMMM d')}`}>
+          <TaskForm
+            categories={categories}
+            defaultDueDate={format(creatingForDay, 'yyyy-MM-dd')}
+            onSubmit={handleCreateSubmit}
             onCancel={closeModals}
           />
         </Modal>

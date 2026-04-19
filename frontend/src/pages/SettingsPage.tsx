@@ -319,10 +319,10 @@ export function SettingsPage() {
           <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
             <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Restore</h3>
             <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-              Import tasks from a backup file. Existing tasks are kept — this adds the backed-up data alongside them.
+              Import tasks from a backup file. This will overwrite all existing tasks, categories, and templates.
             </p>
             <p className="text-xs text-amber-600 dark:text-amber-400 mb-4">
-              Categories with the same name will be merged. Templates with the same name will be overwritten.
+              Warning: all current data will be deleted before the backup is restored.
             </p>
             <label className={`inline-flex px-4 py-2 text-sm font-medium rounded-lg transition-colors cursor-pointer ${
               importing

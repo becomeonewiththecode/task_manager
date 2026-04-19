@@ -16,6 +16,8 @@ interface FormValues {
   dueTime: string;
   recurring: Recurring | '';
   categoryIds: string[];
+  location: string;
+  webLink: string;
 }
 
 interface Props {
@@ -23,18 +25,21 @@ interface Props {
   categories: Array<{ id: string; name: string; color: string }>;
   onSubmit: (data: Partial<Task> & { categoryIds?: string[] }) => Promise<void>;
   onCancel: () => void;
+  defaultDueDate?: string;
 }
 
-export function TaskForm({ task, categories, onSubmit, onCancel }: Props) {
+export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate }: Props) {
   const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm<FormValues>({
     defaultValues: {
       title: '',
       description: '',
       priority: 'MEDIUM',
-      dueDate: '',
+      dueDate: defaultDueDate ?? '',
       dueTime: '',
       recurring: '',
       categoryIds: [],
+      location: '',
+      webLink: '',
     },
   });
 
@@ -59,6 +64,8 @@ export function TaskForm({ task, categories, onSubmit, onCancel }: Props) {
         dueTime: d ? format(d, 'HH:mm') : '',
         recurring: task.recurring ?? '',
         categoryIds: task.tags.map((t) => t.category.id),
+        location: task.location ?? '',
+        webLink: task.webLink ?? '',
       });
       if (task.id) {
         taskSharesService.list(task.id).then(setShares).catch(() => {});
@@ -79,6 +86,8 @@ export function TaskForm({ task, categories, onSubmit, onCancel }: Props) {
       dueDate,
       recurring: (values.recurring || undefined) as Recurring | undefined,
       categoryIds: values.categoryIds,
+      location: values.location || undefined,
+      webLink: values.webLink || undefined,
     });
   };
 
@@ -184,6 +193,27 @@ export function TaskForm({ task, categories, onSubmit, onCancel }: Props) {
               rows={3}
               className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
               placeholder="Optional description"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label>
+            <input
+              {...register('location')}
+              type="text"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="e.g. 123 Main St, New York, NY"
+            />
+            <p className="mt-1 text-xs text-gray-400">Will open in Google Maps</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Web Link</label>
+            <input
+              {...register('webLink')}
+              type="url"
+              className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              placeholder="https://example.com"
             />
           </div>
 
