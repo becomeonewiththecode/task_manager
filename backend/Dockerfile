@@ -3,7 +3,7 @@ RUN apk add --no-cache openssl
 WORKDIR /app
 COPY package*.json ./
 COPY prisma ./prisma
-RUN npm install
+RUN npm ci
 
 FROM base AS development
 ENV NODE_ENV=development
@@ -22,9 +22,10 @@ RUN apk add --no-cache openssl
 ENV NODE_ENV=production
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --only=production
+RUN npm ci --omit=dev
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/prisma ./prisma
-RUN npx prisma generate
+COPY --from=builder /app/start.sh ./start.sh
+RUN npx prisma generate && chmod +x start.sh
 EXPOSE 4000
-CMD ["node", "dist/server.js"]
+CMD ["./start.sh"]

@@ -21,10 +21,13 @@ model User {
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
-  tasks       Task[]
-  categories  Category[]
-  sessions    Session[]
-  auditLogs   AuditLog[]
+  tasks         Task[]
+  categories    Category[]
+  sessions      Session[]
+  auditLogs     AuditLog[]
+  timeEntries   TimeEntry[]
+  taskShares    TaskShare[]
+  taskTemplates TaskTemplate[]
 
   @@index([email])
   @@index([deletedAt])
@@ -46,13 +49,84 @@ model Task {
   userId      String
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  tags        TaskTag[]
+  parentId    String?
+  parent      Task?       @relation("SubTasks", fields: [parentId], references: [id])
+  subtasks    Task[]      @relation("SubTasks")
+
+  tags             TaskTag[]
+  dependencies     TaskDependency[] @relation("DependencyTask")
+  dependedOnBy     TaskDependency[] @relation("DependencyOn")
+  timeEntries      TimeEntry[]
+  shares           TaskShare[]
 
   @@index([userId])
   @@index([status])
   @@index([dueDate])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([parentId])
+  @@index([userId, status, updatedAt])
+}
+
+model TaskDependency {
+  taskId      String
+  dependsOnId String
+
+  task        Task   @relation("DependencyTask", fields: [taskId], references: [id], onDelete: Cascade)
+  dependsOn   Task   @relation("DependencyOn", fields: [dependsOnId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, dependsOnId])
+  @@index([taskId])
+  @@index([dependsOnId])
+}
+
+model TimeEntry {
+  id        String    @id @default(cuid())
+  startedAt DateTime
+  endedAt   DateTime?
+  note      String?
+  createdAt DateTime  @default(now())
+
+  taskId    String
+  userId    String
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([userId])
+  @@index([startedAt])
+}
+
+model TaskShare {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  expiresAt DateTime?
+  createdAt DateTime  @default(now())
+
+  taskId    String
+  userId    String
+  task      Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([taskId])
+}
+
+model TaskTemplate {
+  id          String     @id @default(cuid())
+  name        String
+  description String?
+  priority    Priority   @default(MEDIUM)
+  recurring   Recurring?
+  categoryIds String[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  userId      String
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, name])
+  @@index([userId])
 }
 
 model Category {

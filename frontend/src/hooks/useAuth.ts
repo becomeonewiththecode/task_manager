@@ -5,7 +5,6 @@ import { usersService } from '@/services/users.service';
 
 export function useAuth() {
   const { user, accessToken, login, logout, setUser } = useAuthStore();
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (accessToken && !user) {

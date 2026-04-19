@@ -2,14 +2,22 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { usersService } from '@/services/users.service';
-import type { Stats } from '@/types';
+import { ActivityFeed } from '@/components/ActivityFeed';
+import type { Stats, AuditLogEntry } from '@/types';
 
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
   const [stats, setStats] = useState<Stats | null>(null);
+  const [activity, setActivity] = useState<AuditLogEntry[]>([]);
+  const [activityLoading, setActivityLoading] = useState(false);
 
   useEffect(() => {
     usersService.getStats().then(setStats).catch(console.error);
+    setActivityLoading(true);
+    usersService.getActivity({ limit: 10 })
+      .then((r) => setActivity(r.entries))
+      .catch(console.error)
+      .finally(() => setActivityLoading(false));
   }, []);
 
   return (
@@ -65,6 +73,17 @@ export function DashboardPage() {
         >
           + New task
         </Link>
+        <Link
+          to="/analytics"
+          className="px-4 py-2 text-sm font-medium border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-lg transition-colors"
+        >
+          View analytics →
+        </Link>
+      </div>
+
+      <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Recent Activity</h3>
+        <ActivityFeed entries={activity} loading={activityLoading} />
       </div>
     </div>
   );

@@ -8,6 +8,9 @@ export interface TaskFilters {
   search?: string;
   page?: number;
   limit?: number;
+  dueDateFrom?: string;
+  dueDateTo?: string;
+  parentId?: string | null;
 }
 
 export const tasksService = {
@@ -28,4 +31,19 @@ export const tasksService = {
 
   reorder: (ids: string[]) =>
     api.put('/tasks/reorder', { ids }),
+
+  createSubtask: (parentId: string, data: Partial<Task> & { categoryIds?: string[] }) =>
+    api.post<Task>(`/tasks/${parentId}/subtasks`, data).then((r) => r.data),
+
+  addDependency: (taskId: string, dependsOnId: string) =>
+    api.post(`/tasks/${taskId}/dependencies`, { dependsOnId }),
+
+  removeDependency: (taskId: string, dependsOnId: string) =>
+    api.delete(`/tasks/${taskId}/dependencies/${dependsOnId}`),
+
+  bulkUpdate: (ids: string[], patch: { status?: string; priority?: string }) =>
+    api.patch('/tasks/bulk', { ids, patch }),
+
+  bulkDelete: (ids: string[]) =>
+    api.delete('/tasks/bulk', { data: { ids } }),
 };

@@ -1,12 +1,22 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { Theme } from '@/types';
+import type { Theme, ShortcutConfig } from '@/types';
+
+const DEFAULT_SHORTCUTS: ShortcutConfig = {
+  newTask: 'n',
+  focusSearch: '/',
+  toggleSidebar: 'b',
+  openCalendar: 'c',
+  openAnalytics: 'a',
+};
 
 interface UiState {
   theme: Theme;
   sidebarOpen: boolean;
+  shortcuts: ShortcutConfig;
   setTheme: (theme: Theme) => void;
   toggleSidebar: () => void;
+  setShortcut: (action: keyof ShortcutConfig, key: string) => void;
 }
 
 export const useUiStore = create<UiState>()(
@@ -14,6 +24,7 @@ export const useUiStore = create<UiState>()(
     (set) => ({
       theme: 'light',
       sidebarOpen: true,
+      shortcuts: DEFAULT_SHORTCUTS,
       setTheme: (theme) => {
         const root = document.documentElement;
         root.classList.remove('dark', 'theme-ocean', 'theme-forest');
@@ -22,7 +33,9 @@ export const useUiStore = create<UiState>()(
         set({ theme });
       },
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+      setShortcut: (action, key) =>
+        set((s) => ({ shortcuts: { ...s.shortcuts, [action]: key } })),
     }),
-    { name: 'ui', partialize: (s) => ({ theme: s.theme }) },
+    { name: 'ui', partialize: (s) => ({ theme: s.theme, shortcuts: s.shortcuts }) },
   ),
 );

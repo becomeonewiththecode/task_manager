@@ -1,11 +1,14 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/authStore';
 import { useUiStore } from '@/store/uiStore';
+import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import type { Theme } from '@/types';
 
 const NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/tasks', label: 'Tasks' },
+  { to: '/calendar', label: 'Calendar' },
+  { to: '/analytics', label: 'Analytics' },
   { to: '/settings', label: 'Settings' },
 ];
 
@@ -19,6 +22,7 @@ const THEMES: { value: Theme; label: string }[] = [
 export function Layout() {
   const logout = useAuthStore((s) => s.logout);
   const { theme, setTheme, sidebarOpen, toggleSidebar } = useUiStore();
+  const { isOnline } = useOnlineStatus();
   const navigate = useNavigate();
 
   const handleLogout = () => {
@@ -63,9 +67,7 @@ export function Layout() {
                 className="mt-1 w-full text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-2 py-1.5"
               >
                 {THEMES.map((t) => (
-                  <option key={t.value} value={t.value}>
-                    {t.label}
-                  </option>
+                  <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
             </div>
@@ -80,7 +82,7 @@ export function Layout() {
       )}
 
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4">
+        <header className="h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center px-4 gap-3">
           <button
             onClick={toggleSidebar}
             className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
@@ -88,6 +90,11 @@ export function Layout() {
           >
             ☰
           </button>
+          {!isOnline && (
+            <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400 px-3 py-1 rounded-full font-medium">
+              Offline — changes will sync when reconnected
+            </span>
+          )}
         </header>
 
         <main className="flex-1 overflow-auto p-6">

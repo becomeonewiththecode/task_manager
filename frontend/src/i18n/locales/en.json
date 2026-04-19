@@ -1,0 +1,141 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "tasks": "Tasks",
+    "calendar": "Calendar",
+    "analytics": "Analytics",
+    "templates": "Templates",
+    "settings": "Settings"
+  },
+  "tasks": {
+    "title": "Tasks",
+    "newTask": "+ New task",
+    "editTask": "Edit Task",
+    "createTask": "Create Task",
+    "updateTask": "Update Task",
+    "noTasks": "No tasks yet. Press N to create one.",
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "search": "Search tasks… (/)",
+    "allStatus": "All status",
+    "allPriority": "All priority",
+    "active": "Active",
+    "completed": "Completed",
+    "subtasks": "Subtasks",
+    "addSubtask": "Add subtask",
+    "dependencies": "Dependencies",
+    "timeTracking": "Time Tracking",
+    "share": "Share",
+    "useTemplate": "Use template"
+  },
+  "priority": {
+    "HIGH": "High",
+    "MEDIUM": "Medium",
+    "LOW": "Low"
+  },
+  "status": {
+    "ACTIVE": "Active",
+    "COMPLETED": "Completed"
+  },
+  "recurring": {
+    "none": "None",
+    "DAILY": "Daily",
+    "WEEKLY": "Weekly",
+    "MONTHLY": "Monthly"
+  },
+  "dashboard": {
+    "welcome": "Welcome back, {{name}}",
+    "overview": "Here's your task overview",
+    "totalTasks": "Total Tasks",
+    "activeTasks": "Active",
+    "completedTasks": "Completed",
+    "completionRate": "Completion Rate",
+    "byPriority": "Tasks by Priority",
+    "viewAll": "View all tasks →",
+    "newTask": "+ New task",
+    "recentActivity": "Recent Activity"
+  },
+  "analytics": {
+    "title": "Analytics",
+    "completionOverTime": "Completions Over Time",
+    "byPriority": "Tasks by Priority",
+    "statusBreakdown": "Status Breakdown",
+    "from": "From",
+    "to": "To",
+    "tasks": "tasks"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "noTasksDue": "No tasks due",
+    "moreTasks": "+{{count}} more"
+  },
+  "settings": {
+    "title": "Settings",
+    "account": "Account",
+    "security": "Security",
+    "shortcuts": "Shortcuts",
+    "templates": "Templates",
+    "updateEmail": "Update Email",
+    "changePassword": "Change Password",
+    "twoFactor": "Two-Factor Authentication",
+    "keyboardShortcuts": "Keyboard Shortcuts",
+    "shortcutHint": "Click and press a key to set shortcut"
+  },
+  "templates": {
+    "title": "Task Templates",
+    "newTemplate": "+ New Template",
+    "noTemplates": "No templates yet.",
+    "apply": "Use",
+    "delete": "Delete",
+    "name": "Template Name",
+    "createTaskFromTemplate": "Create task from template"
+  },
+  "sharing": {
+    "title": "Share Task",
+    "createLink": "Create share link",
+    "expiry": "Expires (optional)",
+    "copyLink": "Copy link",
+    "revoke": "Revoke",
+    "noLinks": "No share links yet.",
+    "publicView": "Shared Task",
+    "expired": "This share link has expired.",
+    "notFound": "Share link not found."
+  },
+  "timer": {
+    "start": "Start timer",
+    "stop": "Stop timer",
+    "total": "Total time",
+    "log": "Time log"
+  },
+  "activity": {
+    "create": "Created",
+    "update": "Updated",
+    "delete": "Deleted",
+    "bulk_update": "Bulk updated",
+    "bulk_delete": "Bulk deleted",
+    "add_dependency": "Added dependency",
+    "remove_dependency": "Removed dependency"
+  },
+  "auth": {
+    "signOut": "Sign out",
+    "theme": "Theme"
+  },
+  "bulk": {
+    "selected": "{{count}} selected",
+    "complete": "Mark complete",
+    "reopen": "Reopen",
+    "setPriority": "Set priority",
+    "deleteSelected": "Delete selected",
+    "clear": "Clear selection"
+  },
+  "voice": {
+    "start": "Voice input",
+    "notSupported": "Voice input not supported in this browser"
+  },
+  "offline": {
+    "banner": "You are offline. Changes will sync when reconnected."
+  }
+}

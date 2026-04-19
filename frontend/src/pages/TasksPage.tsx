@@ -13,16 +13,20 @@ import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrate
 import toast from 'react-hot-toast';
 import { useTaskStore } from '@/store/taskStore';
 import { categoriesService } from '@/services/categories.service';
+import { timeEntriesService } from '@/services/timeEntries.service';
 import { TaskCard } from '@/components/TaskCard';
 import { TaskForm } from '@/components/TaskForm';
 import { FilterBar } from '@/components/FilterBar';
-import type { Task, Category } from '@/types';
+import { BulkActionBar } from '@/components/BulkActionBar';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import type { Task, Category, TimeEntry } from '@/types';
 
 export function TasksPage() {
-  const { tasks, loading, fetchTasks, createTask, updateTask, deleteTask, reorderTasks } = useTaskStore();
+  const { tasks, loading, fetchTasks, createTask, updateTask, deleteTask, reorderTasks, selectedIds } = useTaskStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [activeTimerEntry, setActiveTimerEntry] = useState<TimeEntry | null>(null);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
   const [searchParams] = useSearchParams();
 
@@ -34,26 +38,24 @@ export function TasksPage() {
   useEffect(() => {
     fetchTasks();
     categoriesService.list().then(setCategories).catch(console.error);
+    loadActiveTimer();
   }, []);
 
   useEffect(() => {
     if (searchParams.get('new')) setShowForm(true);
   }, [searchParams]);
 
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'n' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        setShowForm(true);
-        setEditingTask(null);
-      }
-      if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes((e.target as HTMLElement).tagName)) {
-        e.preventDefault();
-        document.getElementById('task-search')?.focus();
-      }
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
+  const loadActiveTimer = async () => {
+    try {
+      const entry = await timeEntriesService.getActive();
+      setActiveTimerEntry(entry);
+    } catch { /* ignore */ }
+  };
+
+  useKeyboardShortcuts({
+    newTask: () => { setShowForm(true); setEditingTask(null); },
+    focusSearch: () => document.getElementById('task-search')?.focus(),
+  });
 
   const handleSearch = useCallback((q: string) => {
     clearTimeout(searchTimeout.current);
@@ -134,6 +136,12 @@ export function TasksPage() {
         </div>
       )}
 
+      {selectedIds.size > 0 && (
+        <div className="text-xs text-gray-500 dark:text-gray-400">
+          {selectedIds.size} task{selectedIds.size > 1 ? 's' : ''} selected
+        </div>
+      )}
+
       {loading ? (
         <div className="text-center py-12 text-gray-400 dark:text-gray-500">Loading…</div>
       ) : tasks.length === 0 ? (
@@ -151,12 +159,16 @@ export function TasksPage() {
                   onToggle={handleToggle}
                   onEdit={handleEdit}
                   onDelete={handleDelete}
+                  activeTimerEntry={activeTimerEntry}
+                  onTimerChanged={loadActiveTimer}
                 />
               ))}
             </div>
           </SortableContext>
         </DndContext>
       )}
+
+      <BulkActionBar />
     </div>
   );
 }

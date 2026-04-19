@@ -42,3 +42,45 @@ export async function getStats(req: Request, res: Response, next: NextFunction) 
     next(err);
   }
 }
+
+export async function getAnalytics(req: Request, res: Response, next: NextFunction) {
+  try {
+    const to = req.query.to ? new Date(req.query.to as string) : new Date();
+    const from = req.query.from
+      ? new Date(req.query.from as string)
+      : new Date(to.getTime() - 30 * 24 * 60 * 60 * 1000);
+    res.json(await usersService.getAnalytics(req.userId, from, to));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function exportData(req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await usersService.exportData(req.userId));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function importData(req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await usersService.importData(req.userId, req.body));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getActivity(req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(
+      await usersService.getAuditLog(req.userId, {
+        page: Number(req.query.page) || 1,
+        limit: Number(req.query.limit) || 20,
+        entity: req.query.entity as string | undefined,
+      }),
+    );
+  } catch (err) {
+    next(err);
+  }
+}

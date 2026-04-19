@@ -1,5 +1,4 @@
 import { useTaskStore } from '@/store/taskStore';
-import type { Priority, TaskStatus } from '@/types';
 
 interface Props {
   onSearch: (q: string) => void;

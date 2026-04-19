@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { tasksService, type TaskFilters } from '@/services/tasks.service';
-import type { Task } from '@/types';
+import type { Task, Priority, TaskStatus } from '@/types';
 
 interface TaskState {
   tasks: Task[];
@@ -9,12 +9,20 @@ interface TaskState {
   page: number;
   filters: TaskFilters;
   loading: boolean;
+  selectedIds: Set<string>;
+
   fetchTasks: (filters?: TaskFilters) => Promise<void>;
   createTask: (data: Partial<Task> & { categoryIds?: string[] }) => Promise<void>;
-  updateTask: (id: string, data: Partial<Task> & { categoryIds?: string[] }) => Promise<void>;
+  updateTask: (id: string, data: Partial<Task> & { categoryIds?: string[] }) => Promise<Task>;
   deleteTask: (id: string) => Promise<void>;
   reorderTasks: (ids: string[]) => Promise<void>;
   setFilters: (filters: TaskFilters) => void;
+
+  toggleSelect: (id: string) => void;
+  selectAll: () => void;
+  clearSelection: () => void;
+  bulkUpdate: (patch: { status?: TaskStatus; priority?: Priority }) => Promise<void>;
+  bulkDelete: () => Promise<void>;
 }
 
 export const useTaskStore = create<TaskState>((set, get) => ({
@@ -24,6 +32,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   page: 1,
   filters: {},
   loading: false,
+  selectedIds: new Set(),
 
   fetchTasks: async (filters) => {
     const merged = { ...get().filters, ...filters };
@@ -44,6 +53,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   updateTask: async (id, data) => {
     const updated = await tasksService.update(id, data);
     set((s) => ({ tasks: s.tasks.map((t) => (t.id === id ? updated : t)) }));
+    return updated;
   },
 
   deleteTask: async (id) => {
@@ -58,4 +68,35 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   setFilters: (filters) => set((s) => ({ filters: { ...s.filters, ...filters } })),
+
+  toggleSelect: (id) =>
+    set((s) => {
+      const next = new Set(s.selectedIds);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return { selectedIds: next };
+    }),
+
+  selectAll: () => set((s) => ({ selectedIds: new Set(s.tasks.map((t) => t.id)) })),
+
+  clearSelection: () => set({ selectedIds: new Set() }),
+
+  bulkUpdate: async (patch) => {
+    const ids = [...get().selectedIds];
+    if (!ids.length) return;
+    await tasksService.bulkUpdate(ids, patch);
+    set((s) => ({
+      tasks: s.tasks.map((t) => (s.selectedIds.has(t.id) ? { ...t, ...patch } : t)),
+      selectedIds: new Set(),
+    }));
+  },
+
+  bulkDelete: async () => {
+    const ids = [...get().selectedIds];
+    if (!ids.length) return;
+    await tasksService.bulkDelete(ids);
+    set((s) => ({
+      tasks: s.tasks.filter((t) => !s.selectedIds.has(t.id)),
+      selectedIds: new Set(),
+    }));
+  },
 }));
