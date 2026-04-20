@@ -12,6 +12,9 @@ const envSchema = z.object({
   JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
   FRONTEND_URL: z.string().default('http://localhost:3333'),
   TOTP_APP_NAME: z.string().default('TaskManager'),
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_EMAIL: z.string().default('mailto:admin@taskmanager.local'),
 });
 
 const parsed = envSchema.safeParse(process.env);

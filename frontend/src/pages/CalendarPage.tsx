@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   startOfMonth, endOfMonth, eachDayOfInterval, isSameDay,
   format, addMonths, subMonths, startOfWeek, endOfWeek,
@@ -8,6 +8,7 @@ import { categoriesService } from '@/services/categories.service';
 import type { Task, Category } from '@/types';
 import { PRIORITY_STYLES } from '@/components/TaskCard';
 import { TaskForm } from '@/components/TaskForm';
+import { parseIcs, type IcsEvent } from '@/utils/icsParser';
 import toast from 'react-hot-toast';
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -21,6 +22,10 @@ export function CalendarPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [expandedDay, setExpandedDay] = useState<{ day: Date; tasks: Task[] } | null>(null);
   const [creatingForDay, setCreatingForDay] = useState<Date | null>(null);
+  const [icsEvents, setIcsEvents] = useState<IcsEvent[] | null>(null);
+  const [icsSelected, setIcsSelected] = useState<Set<number>>(new Set());
+  const [icsImporting, setIcsImporting] = useState(false);
+  const icsInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     categoriesService.list().then(setCategories).catch(console.error);
@@ -45,6 +50,7 @@ export function CalendarPage() {
 
   const tasksForDay = (day: Date) => {
     const matched = tasks.filter((t) => {
+      if (t.status === 'COMPLETED') return false;
       if (!t.dueDate) return false;
       const due = new Date(t.dueDate);
       if (isSameDay(due, day)) return true;
@@ -113,11 +119,65 @@ export function CalendarPage() {
     setCreatingForDay(null);
   };
 
+  const handleIcsFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const events = parseIcs(ev.target?.result as string);
+        if (events.length === 0) {
+          toast.error('No events found in the .ics file');
+          return;
+        }
+        setIcsEvents(events);
+        setIcsSelected(new Set(events.map((_, i) => i)));
+      } catch {
+        toast.error('Failed to parse .ics file');
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
+
+  const handleIcsImport = async () => {
+    if (!icsEvents) return;
+    setIcsImporting(true);
+    const toImport = icsEvents.filter((_, i) => icsSelected.has(i));
+    let created = 0;
+    for (const ev of toImport) {
+      try {
+        const task = await tasksService.create({
+          title: ev.title,
+          description: ev.description,
+          location: ev.location,
+          dueDate: ev.dueDate,
+          priority: 'MEDIUM',
+        });
+        // Add to current view if it falls within the displayed month
+        const taskDate = new Date(ev.dueDate);
+        if (
+          taskDate >= startOfMonth(currentMonth) &&
+          taskDate <= endOfMonth(currentMonth)
+        ) {
+          setTasks((prev) => [...prev, task]);
+        }
+        created++;
+      } catch {
+        // continue importing remaining events
+      }
+    }
+    setIcsImporting(false);
+    setIcsEvents(null);
+    toast.success(`Imported ${created} task${created !== 1 ? 's' : ''}`);
+  };
+
   const closeModals = () => {
     setSelectedTask(null);
     setEditingTask(null);
     setExpandedDay(null);
     setCreatingForDay(null);
+    setIcsEvents(null);
   };
 
   return (
@@ -146,6 +206,20 @@ export function CalendarPage() {
           >
             Today
           </button>
+          <button
+            onClick={() => icsInputRef.current?.click()}
+            className="px-3 py-1.5 text-xs font-medium border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300"
+            title="Import .ics calendar file"
+          >
+            Import .ics
+          </button>
+          <input
+            ref={icsInputRef}
+            type="file"
+            accept=".ics,text/calendar"
+            className="hidden"
+            onChange={handleIcsFile}
+          />
         </div>
       </div>
 
@@ -375,6 +449,80 @@ export function CalendarPage() {
             onSubmit={handleCreateSubmit}
             onCancel={closeModals}
           />
+        </Modal>
+      )}
+
+      {/* ICS import preview modal */}
+      {icsEvents && (
+        <Modal onClose={closeModals} title={`Import ${icsEvents.length} event${icsEvents.length !== 1 ? 's' : ''}`}>
+          <div className="space-y-3">
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Select the events to import as tasks:
+            </p>
+            <div className="space-y-2 max-h-72 overflow-y-auto">
+              {icsEvents.map((ev, i) => (
+                <label
+                  key={i}
+                  className="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/40 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={icsSelected.has(i)}
+                    onChange={() =>
+                      setIcsSelected((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(i)) next.delete(i);
+                        else next.add(i);
+                        return next;
+                      })
+                    }
+                    className="mt-0.5 shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{ev.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {format(new Date(ev.dueDate), 'EEE, MMM d, yyyy')}
+                      {new Date(ev.dueDate).getHours() !== 0 || new Date(ev.dueDate).getMinutes() !== 0
+                        ? ` at ${format(new Date(ev.dueDate), 'h:mm a')}`
+                        : ''}
+                    </p>
+                    {ev.location && (
+                      <p className="text-xs text-gray-400 dark:text-gray-500 truncate">{ev.location}</p>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+              <button
+                onClick={() =>
+                  setIcsSelected(
+                    icsSelected.size === icsEvents.length
+                      ? new Set()
+                      : new Set(icsEvents.map((_, i) => i))
+                  )
+                }
+                className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
+              >
+                {icsSelected.size === icsEvents.length ? 'Deselect all' : 'Select all'}
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={closeModals}
+                  className="px-4 py-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleIcsImport}
+                  disabled={icsSelected.size === 0 || icsImporting}
+                  className="px-4 py-2 text-sm font-medium bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white rounded-lg transition-colors"
+                >
+                  {icsImporting ? 'Importing…' : `Import ${icsSelected.size} task${icsSelected.size !== 1 ? 's' : ''}`}
+                </button>
+              </div>
+            </div>
+          </div>
         </Modal>
       )}
     </div>

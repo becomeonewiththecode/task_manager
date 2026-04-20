@@ -12,6 +12,7 @@ interface FormValues {
   title: string;
   description: string;
   priority: Priority;
+  status: 'ACTIVE' | 'COMPLETED';
   dueDate: string;
   dueTime: string;
   recurring: Recurring | '';
@@ -29,11 +30,12 @@ interface Props {
 }
 
 export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate }: Props) {
-  const { register, handleSubmit, reset, setValue, formState: { isSubmitting } } = useForm<FormValues>({
+  const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm<FormValues>({
     defaultValues: {
       title: '',
       description: '',
       priority: 'MEDIUM',
+      status: 'ACTIVE' as const,
       dueDate: defaultDueDate ?? '',
       dueTime: '',
       recurring: '',
@@ -63,6 +65,7 @@ export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate 
         dueDate: d ? format(d, 'yyyy-MM-dd') : '',
         dueTime: d ? format(d, 'HH:mm') : '',
         recurring: task.recurring ?? '',
+        status: task.status,
         categoryIds: task.tags.map((t) => t.category.id),
         location: task.location ?? '',
         webLink: task.webLink ?? '',
@@ -83,6 +86,7 @@ export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate 
       title: values.title,
       description: values.description || undefined,
       priority: values.priority,
+      status: values.status,
       dueDate,
       recurring: (values.recurring || undefined) as Recurring | undefined,
       categoryIds: values.categoryIds,
@@ -280,6 +284,21 @@ export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate 
                   </label>
                 ))}
               </div>
+            </div>
+          )}
+
+          {task && (
+            <div className="flex items-center gap-2 pt-1">
+              <input
+                type="checkbox"
+                id="task-completed"
+                checked={watch('status') === 'COMPLETED'}
+                onChange={(e) => setValue('status', e.target.checked ? 'COMPLETED' : 'ACTIVE')}
+                className="rounded border-gray-300 text-primary-600 focus:ring-primary-500 h-4 w-4"
+              />
+              <label htmlFor="task-completed" className="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer">
+                Mark as complete
+              </label>
             </div>
           )}
 

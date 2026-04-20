@@ -7,6 +7,7 @@ import { useUiStore } from '@/store/uiStore';
 import { usersService } from '@/services/users.service';
 import { authService } from '@/services/auth.service';
 import { ActivityFeed } from '@/components/ActivityFeed';
+import { useNotifications } from '@/hooks/useNotifications';
 import type { ShortcutConfig, AuditLogEntry, Theme } from '@/types';
 
 const THEMES: { value: Theme; label: string; description: string }[] = [
@@ -30,7 +31,8 @@ export function SettingsPage() {
   const { shortcuts, setShortcut, theme, setTheme } = useUiStore();
   const [capturingKey, setCapturingKey] = useState<keyof ShortcutConfig | null>(null);
   const [totpSetup, setTotpSetup] = useState<{ qrDataUrl: string; secret: string } | null>(null);
-  const [activeTab, setActiveTab] = useState<'account' | 'security' | 'appearance' | 'shortcuts' | 'data' | 'activity'>('account');
+  const [activeTab, setActiveTab] = useState<'account' | 'security' | 'appearance' | 'shortcuts' | 'notifications' | 'data' | 'activity'>('account');
+  const { supported: notifSupported, permission, subscribed, loading: notifLoading, error: notifError, enable: enableNotifs, disable: disableNotifs } = useNotifications();
   const [importing, setImporting] = useState(false);
   const [activity, setActivity] = useState<AuditLogEntry[]>([]);
   const [activityLoading, setActivityLoading] = useState(false);
@@ -147,7 +149,7 @@ export function SettingsPage() {
       <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Settings</h2>
 
       <div className="flex gap-1 border-b border-gray-200 dark:border-gray-700 overflow-x-auto scrollbar-none">
-        {(['account', 'security', 'appearance', 'shortcuts', 'data', 'activity'] as const).map((tab) => (
+        {(['account', 'security', 'appearance', 'shortcuts', 'notifications', 'data', 'activity'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -347,6 +349,53 @@ export function SettingsPage() {
           </div>
         </div>
       )}
+      {activeTab === 'notifications' && (
+        <div className="space-y-6">
+          <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+            <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100 mb-1">Task Reminders</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+              Get browser notifications 15 minutes before a task is due.
+            </p>
+
+            {!notifSupported && (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Your browser does not support push notifications.
+              </p>
+            )}
+
+            {notifSupported && permission === 'denied' && (
+              <p className="text-sm text-red-600 dark:text-red-400">
+                Notifications are blocked by your browser. Open browser settings to allow them for this site, then return here.
+              </p>
+            )}
+
+            {notifSupported && permission !== 'denied' && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={subscribed ? disableNotifs : enableNotifs}
+                    disabled={notifLoading}
+                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 ${
+                      subscribed
+                        ? 'bg-red-100 hover:bg-red-200 text-red-700 dark:bg-red-900/30 dark:hover:bg-red-900/50 dark:text-red-400'
+                        : 'bg-primary-600 hover:bg-primary-700 text-white'
+                    }`}
+                  >
+                    {notifLoading ? 'Working…' : subscribed ? 'Disable notifications' : 'Enable notifications'}
+                  </button>
+                  {subscribed && !notifLoading && (
+                    <span className="text-sm text-green-600 dark:text-green-400 font-medium">Active</span>
+                  )}
+                </div>
+                {notifError && (
+                  <p className="text-sm text-red-600 dark:text-red-400">{notifError}</p>
+                )}
+              </div>
+            )}
+          </section>
+        </div>
+      )}
+
       {activeTab === 'data' && (
         <div className="space-y-6">
           <section className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">

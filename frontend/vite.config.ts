@@ -7,21 +7,10 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.ts',
       registerType: 'autoUpdate',
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
-        runtimeCaching: [
-          {
-            urlPattern: /^\/api\/v1\/tasks/,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'api-tasks',
-              expiration: { maxAgeSeconds: 60 * 60 * 24 },
-              networkTimeoutSeconds: 5,
-            },
-          },
-        ],
-      },
       manifest: {
         name: 'Task Manager',
         short_name: 'Tasks',
@@ -34,6 +23,13 @@ export default defineConfig({
           { src: '/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icon-512.png', sizes: '512x512', type: 'image/png' },
         ],
+      },
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg}'],
+      },
+      devOptions: {
+        enabled: true,
+        type: 'module',
       },
     }),
   ],

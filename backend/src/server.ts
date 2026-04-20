@@ -2,9 +2,11 @@ import { config } from './config';
 import app from './app';
 import { logger } from './utils/logger';
 import { redis } from './utils/redis';
+import { startNotificationScheduler } from './services/notificationScheduler';
 
 async function start() {
   await redis.connect();
+  startNotificationScheduler();
 
   const server = app.listen(config.PORT, () => {
     logger.info({ port: config.PORT, env: config.NODE_ENV }, 'Server started');

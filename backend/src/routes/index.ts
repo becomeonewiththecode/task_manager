@@ -4,6 +4,7 @@ import tasksRoutes from './tasks';
 import usersRoutes from './users';
 import categoriesRoutes from './categories';
 import taskTemplatesRoutes from './taskTemplates';
+import pushRoutes from './push';
 import { getPublic } from '../controllers/taskShares.controller';
 
 const router = Router();
@@ -16,5 +17,6 @@ router.use('/tasks', tasksRoutes);
 router.use('/users', usersRoutes);
 router.use('/categories', categoriesRoutes);
 router.use('/templates', taskTemplatesRoutes);
+router.use('/push', pushRoutes);
 
 export default router;
