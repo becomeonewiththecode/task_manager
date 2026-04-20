@@ -153,8 +153,9 @@ export function CalendarPage() {
         {/* Header row */}
         <div className="grid grid-cols-7 border-b border-gray-200 dark:border-gray-700">
           {WEEKDAYS.map((d) => (
-            <div key={d} className="px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 text-center uppercase tracking-wide">
-              {d}
+            <div key={d} className="px-1 sm:px-3 py-2 text-xs font-semibold text-gray-500 dark:text-gray-400 text-center uppercase tracking-wide">
+              <span className="hidden sm:inline">{d}</span>
+              <span className="sm:hidden">{d[0]}</span>
             </div>
           ))}
         </div>
@@ -172,11 +173,11 @@ export function CalendarPage() {
                 <div
                   key={day.toISOString()}
                   onClick={() => setCreatingForDay(day)}
-                  className={`min-h-24 p-2 cursor-pointer group ${isCurrentMonth ? 'hover:bg-gray-50 dark:hover:bg-gray-700/30' : 'bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50'} transition-colors`}
+                  className={`min-h-16 sm:min-h-24 p-1 sm:p-2 cursor-pointer group ${isCurrentMonth ? 'hover:bg-gray-50 dark:hover:bg-gray-700/30' : 'bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-700/50'} transition-colors`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <div
-                      className={`text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full ${
+                      className={`text-xs font-medium w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center rounded-full ${
                         isToday
                           ? 'bg-primary-600 text-white'
                           : isCurrentMonth
@@ -186,10 +187,35 @@ export function CalendarPage() {
                     >
                       {format(day, 'd')}
                     </div>
-                    <span className="text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity text-base leading-none pr-0.5">+</span>
+                    <span className="hidden sm:block text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity text-base leading-none pr-0.5">+</span>
                   </div>
 
-                  <div className="space-y-0.5">
+                  {/* Mobile: dot indicators */}
+                  {dayTasks.length > 0 && (
+                    <div className="sm:hidden flex flex-wrap gap-0.5 mt-0.5">
+                      {dayTasks.slice(0, 4).map((task) => (
+                        <button
+                          key={task.id}
+                          onClick={(e) => { e.stopPropagation(); setSelectedTask(task); }}
+                          className={`w-2 h-2 rounded-full shrink-0 ${
+                            task.priority === 'HIGH' ? 'bg-red-500' : task.priority === 'MEDIUM' ? 'bg-yellow-500' : 'bg-green-500'
+                          } ${task.status === 'COMPLETED' ? 'opacity-40' : ''}`}
+                          title={task.title}
+                        />
+                      ))}
+                      {dayTasks.length > 4 && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setExpandedDay({ day, tasks: dayTasks }); }}
+                          className="text-[10px] text-primary-600 dark:text-primary-400 leading-none"
+                        >
+                          +{dayTasks.length - 4}
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Desktop: text task labels */}
+                  <div className="hidden sm:block space-y-0.5">
                     {dayTasks.slice(0, 3).map((task) => {
                       const d = new Date(task.dueDate!);
                       const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;

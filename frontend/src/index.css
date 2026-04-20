@@ -29,6 +29,14 @@
   --color-bg-surface: #f8fdff;
 }
 
+/* Hide scrollbar utility */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 /* Forest theme */
 .theme-forest {
   --color-primary-50: #f0fdf4;
