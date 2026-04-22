@@ -38,7 +38,7 @@ export async function listTasks(userId: string, filters: TaskFilters) {
     ...((dueDateFrom || dueDateTo) && {
       dueDate: {
         ...(dueDateFrom && { gte: new Date(dueDateFrom) }),
-        ...(dueDateTo && { lte: new Date(dueDateTo) }),
+        ...(dueDateTo && { lte: new Date(/T/.test(dueDateTo) ? dueDateTo : `${dueDateTo}T23:59:59.999Z`) }),
       },
     }),
   };
@@ -74,6 +74,7 @@ export interface CreateTaskInput {
   recurring?: Recurring;
   location?: string;
   webLink?: string;
+  durationMinutes?: number;
   categoryIds?: string[];
 }
 

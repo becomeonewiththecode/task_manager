@@ -27,7 +27,7 @@ interface Props {
 
 export function TaskCard({ task, onToggle, onEdit, onDelete, activeTimerEntry, onTimerChanged }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task.id });
-  const { selectedIds, toggleSelect } = useTaskStore();
+  const { selectedIds, toggleSelect, updateTask } = useTaskStore();
   const [subtasksExpanded, setSubtasksExpanded] = useState(false);
   const [localSubtasks, setLocalSubtasks] = useState(task.subtasks ?? []);
 
@@ -58,6 +58,14 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, activeTimerEntry, o
       setLocalSubtasks((prev) => prev.filter((s) => s.id !== id));
     } catch {
       toast.error('Failed to delete subtask');
+    }
+  };
+
+  const handleCancel = async () => {
+    try {
+      await updateTask(task.id, { status: task.status === 'CANCELLED' ? 'ACTIVE' : 'CANCELLED' });
+    } catch {
+      toast.error('Failed to update task');
     }
   };
 
@@ -112,8 +120,10 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, activeTimerEntry, o
 
           <div className="flex-1 min-w-0">
             <p
-              className={`text-sm font-medium text-gray-900 dark:text-gray-100 ${
-                task.status === 'COMPLETED' ? 'line-through text-gray-400' : ''
+              className={`text-sm font-medium ${
+                task.status === 'COMPLETED' ? 'line-through text-gray-400' :
+                task.status === 'CANCELLED' ? 'line-through text-gray-400 opacity-60' :
+                'text-gray-900 dark:text-gray-100'
               }`}
             >
               {task.title}
@@ -167,6 +177,15 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, activeTimerEntry, o
                 );
               })()}
 
+              {task.durationMinutes != null && task.durationMinutes > 0 && (() => {
+                const h = Math.floor(task.durationMinutes / 60);
+                const m = task.durationMinutes % 60;
+                const label = h > 0 && m > 0 ? `${h}h ${m}m` : h > 0 ? `${h}h` : `${m}m`;
+                return (
+                  <span className="text-xs text-gray-500 dark:text-gray-400">⏱ {label}</span>
+                );
+              })()}
+
               {task.tags.map(({ category }) => (
                 <span
                   key={category.id}
@@ -202,6 +221,18 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, activeTimerEntry, o
               ✎
             </button>
             <button
+              onClick={handleCancel}
+              className={`p-1.5 rounded-lg transition-colors ${
+                task.status === 'CANCELLED'
+                  ? 'text-orange-500 hover:text-orange-700 hover:bg-orange-50 dark:hover:bg-orange-900/20'
+                  : 'text-gray-400 hover:text-orange-500 hover:bg-orange-50 dark:hover:bg-orange-900/20'
+              }`}
+              aria-label={task.status === 'CANCELLED' ? 'Uncancel task' : 'Cancel task'}
+              title={task.status === 'CANCELLED' ? 'Uncancel' : 'Cancel'}
+            >
+              ⊘
+            </button>
+            <button
               onClick={() => onDelete(task.id)}
               className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
               aria-label="Delete task"
@@ -213,7 +244,7 @@ export function TaskCard({ task, onToggle, onEdit, onDelete, activeTimerEntry, o
       </div>
 
       {/* Subtasks panel */}
-      {(subtasksExpanded || subtaskCount === 0) && task.status !== 'COMPLETED' && (
+      {(subtasksExpanded || subtaskCount === 0) && task.status !== 'COMPLETED' && task.status !== 'CANCELLED' && (
         <SubtasksPanel
           subtasks={localSubtasks}
           onToggle={handleSubtaskToggle}

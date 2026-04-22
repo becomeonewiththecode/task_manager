@@ -12,9 +12,11 @@ interface FormValues {
   title: string;
   description: string;
   priority: Priority;
-  status: 'ACTIVE' | 'COMPLETED';
+  status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   dueDate: string;
   dueTime: string;
+  durationHours: string;
+  durationMins: string;
   recurring: Recurring | '';
   categoryIds: string[];
   location: string;
@@ -38,6 +40,8 @@ export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate 
       status: 'ACTIVE' as const,
       dueDate: defaultDueDate ?? '',
       dueTime: '',
+      durationHours: '',
+      durationMins: '',
       recurring: '',
       categoryIds: [],
       location: '',
@@ -64,6 +68,8 @@ export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate 
         priority: task.priority,
         dueDate: d ? format(d, 'yyyy-MM-dd') : '',
         dueTime: d ? format(d, 'HH:mm') : '',
+        durationHours: task.durationMinutes != null ? String(Math.floor(task.durationMinutes / 60)) : '',
+        durationMins: task.durationMinutes != null ? String(task.durationMinutes % 60) : '',
         recurring: task.recurring ?? '',
         status: task.status,
         categoryIds: task.tags.map((t) => t.category.id),
@@ -82,12 +88,17 @@ export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate 
     if (values.dueDate) {
       dueDate = new Date(`${values.dueDate}T${values.dueTime || '00:00'}`).toISOString();
     }
+    const hours = parseInt(values.durationHours || '0', 10) || 0;
+    const mins = parseInt(values.durationMins || '0', 10) || 0;
+    const durationMinutes = hours * 60 + mins || undefined;
+
     await onSubmit({
       title: values.title,
       description: values.description || undefined,
       priority: values.priority,
       status: values.status,
       dueDate,
+      durationMinutes,
       recurring: (values.recurring || undefined) as Recurring | undefined,
       categoryIds: values.categoryIds,
       location: values.location || undefined,
@@ -247,6 +258,30 @@ export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate 
                 type="time"
                 className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Duration <span className="font-normal text-gray-400">(optional)</span></label>
+            <div className="flex items-center gap-2">
+              <input
+                {...register('durationHours')}
+                type="number"
+                min="0"
+                max="99"
+                placeholder="0"
+                className="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <span className="text-sm text-gray-500 dark:text-gray-400">hr</span>
+              <input
+                {...register('durationMins')}
+                type="number"
+                min="0"
+                max="59"
+                placeholder="0"
+                className="w-20 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <span className="text-sm text-gray-500 dark:text-gray-400">min</span>
             </div>
           </div>
 

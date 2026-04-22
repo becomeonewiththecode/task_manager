@@ -32,6 +32,7 @@ export function FilterBar({ onSearch }: Props) {
         <option value="">All status</option>
         <option value="ACTIVE">Active</option>
         <option value="COMPLETED">Completed</option>
+        <option value="CANCELLED">Cancelled</option>
       </select>
 
       <select
@@ -43,6 +44,18 @@ export function FilterBar({ onSearch }: Props) {
         <option value="HIGH">High</option>
         <option value="MEDIUM">Medium</option>
         <option value="LOW">Low</option>
+      </select>
+
+      <select
+        value={filters.limit ?? 20}
+        onChange={(e) => apply({ limit: e.target.value } as any)}
+        className="rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+      >
+        <option value={5}>5 / page</option>
+        <option value={10}>10 / page</option>
+        <option value={20}>20 / page</option>
+        <option value={50}>50 / page</option>
+        <option value={100}>100 / page</option>
       </select>
     </div>
   );

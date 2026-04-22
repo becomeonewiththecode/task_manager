@@ -22,7 +22,7 @@ import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import type { Task, Category, TimeEntry } from '@/types';
 
 export function TasksPage() {
-  const { tasks, loading, fetchTasks, createTask, updateTask, deleteTask, reorderTasks, selectedIds } = useTaskStore();
+  const { tasks, loading, fetchTasks, createTask, updateTask, deleteTask, reorderTasks, selectedIds, page, totalPages } = useTaskStore();
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
@@ -166,6 +166,28 @@ export function TasksPage() {
             </div>
           </SortableContext>
         </DndContext>
+      )}
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2">
+          <button
+            onClick={() => fetchTasks({ page: page - 1 })}
+            disabled={page <= 1}
+            className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            ‹ Prev
+          </button>
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Page {page} of {totalPages}
+          </span>
+          <button
+            onClick={() => fetchTasks({ page: page + 1 })}
+            disabled={page >= totalPages}
+            className="px-3 py-1.5 text-sm rounded-lg border border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+          >
+            Next ›
+          </button>
+        </div>
       )}
 
       <BulkActionBar />

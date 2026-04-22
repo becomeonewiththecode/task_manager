@@ -1,61 +1,115 @@
-import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { format, addDays, startOfDay, endOfDay } from 'date-fns';
+import { useEffect, useState, useCallback } from 'react';
+import { Link, useLocation } from 'react-router-dom';
+import { format, isSameDay, endOfDay, startOfDay, addDays } from 'date-fns';
 import { useAuthStore } from '@/store/authStore';
+import { useTaskStore } from '@/store/taskStore';
 import { usersService } from '@/services/users.service';
 import { tasksService } from '@/services/tasks.service';
 import { categoriesService } from '@/services/categories.service';
 import { TaskForm } from '@/components/TaskForm';
-import { PRIORITY_STYLES } from '@/components/TaskCard';
+import { TaskCard } from '@/components/TaskCard';
 import type { Stats, Task, Category } from '@/types';
 import toast from 'react-hot-toast';
 
+type DayView = 'today' | 'tomorrow';
+
+function getTasksForDay(allTasks: Task[], day: Date): Task[] {
+  const filtered = allTasks.filter((t) => {
+    if (!t.dueDate) return false;
+    const due = new Date(t.dueDate);
+    if (isSameDay(due, day)) return true;
+    if (!t.recurring) return false;
+    const dayMid = new Date(day.getFullYear(), day.getMonth(), day.getDate());
+    const dueMid = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+    if (dayMid < dueMid) return false;
+    switch (t.recurring) {
+      case 'DAILY': return true;
+      case 'WEEKLY': return day.getDay() === due.getDay();
+      case 'MONTHLY': return day.getDate() === due.getDate();
+      default: return false;
+    }
+  });
+  return filtered.sort((a, b) => {
+    const aD = new Date(a.dueDate!);
+    const bD = new Date(b.dueDate!);
+    const aHasTime = aD.getHours() !== 0 || aD.getMinutes() !== 0;
+    const bHasTime = bD.getHours() !== 0 || bD.getMinutes() !== 0;
+    if (aHasTime && !bHasTime) return -1;
+    if (!aHasTime && bHasTime) return 1;
+    return aD.getHours() * 60 + aD.getMinutes() - (bD.getHours() * 60 + bD.getMinutes());
+  });
+}
+
 export function DashboardPage() {
   const user = useAuthStore((s) => s.user);
+  const taskVersion = useTaskStore((s) => s.taskVersion);
+  const { key: locationKey } = useLocation();
   const [stats, setStats] = useState<Stats | null>(null);
-  const [tomorrowTasks, setTomorrowTasks] = useState<Task[]>([]);
-  const [tomorrowLoading, setTomorrowLoading] = useState(false);
+  const [dayTasks, setDayTasks] = useState<Task[]>([]);
+  const [dayLoading, setDayLoading] = useState(false);
   const [categories, setCategories] = useState<Category[]>([]);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [dayView, setDayView] = useState<DayView>('today');
 
-  const tomorrow = addDays(new Date(), 1);
-  const tomorrowLabel = format(tomorrow, 'EEEE, MMMM d');
+  const today = new Date();
+  const tomorrow = addDays(today, 1);
+  const activeDay = dayView === 'today' ? today : tomorrow;
+
+  const loadDayTasks = useCallback((day: Date) => {
+    setDayLoading(true);
+    const from = startOfDay(day).toISOString();
+    const to = endOfDay(day).toISOString();
+    tasksService.list({ dueDateFrom: from, dueDateTo: to, limit: 500, status: 'ACTIVE' })
+      .then((r) => setDayTasks(getTasksForDay(r.tasks, day)))
+      .catch(console.error)
+      .finally(() => setDayLoading(false));
+  }, []);
 
   useEffect(() => {
     usersService.getStats().then(setStats).catch(console.error);
     categoriesService.list().then(setCategories).catch(console.error);
+    loadDayTasks(activeDay);
+  }, [locationKey, taskVersion]);
 
-    setTomorrowLoading(true);
-    const from = format(startOfDay(tomorrow), "yyyy-MM-dd'T'HH:mm:ss");
-    const to = format(endOfDay(tomorrow), "yyyy-MM-dd'T'HH:mm:ss");
-    tasksService.list({ dueDateFrom: from, dueDateTo: to, limit: 50, status: 'ACTIVE' })
-      .then((r) => {
-        const sorted = r.tasks.sort((a, b) => {
-          const aD = new Date(a.dueDate!);
-          const bD = new Date(b.dueDate!);
-          const aHasTime = aD.getHours() !== 0 || aD.getMinutes() !== 0;
-          const bHasTime = bD.getHours() !== 0 || bD.getMinutes() !== 0;
-          if (aHasTime && !bHasTime) return -1;
-          if (!aHasTime && bHasTime) return 1;
-          return aD.getTime() - bD.getTime();
-        });
-        setTomorrowTasks(sorted);
-      })
-      .catch(console.error)
-      .finally(() => setTomorrowLoading(false));
-  }, []);
+  useEffect(() => {
+    loadDayTasks(activeDay);
+  }, [dayView]);
+
+  const handleToggle = async (task: Task) => {
+    try {
+      const updated = await tasksService.update(task.id, {
+        status: task.status === 'ACTIVE' ? 'COMPLETED' : 'ACTIVE',
+      });
+      setDayTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    } catch {
+      toast.error('Failed to update task');
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await tasksService.delete(id);
+      setDayTasks((prev) => prev.filter((t) => t.id !== id));
+      toast.success('Task deleted');
+    } catch {
+      toast.error('Failed to delete task');
+    }
+  };
 
   const handleEditSubmit = async (data: Partial<Task> & { categoryIds?: string[] }) => {
     if (!editingTask) return;
     try {
       const updated = await tasksService.update(editingTask.id, data);
-      setTomorrowTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      setDayTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
       toast.success('Task updated');
     } catch {
       toast.error('Failed to update task');
     }
     setEditingTask(null);
   };
+
+  const dayLabel = format(activeDay, 'EEEE, MMMM d');
+  const emptyMsg = dayView === 'today' ? 'No tasks scheduled for today.' : 'No tasks scheduled for tomorrow.';
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -97,12 +151,34 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Tomorrow's Tasks */}
+      {/* Day Tasks */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-            Tomorrow — {tomorrowLabel}
-          </h3>
+          <div className="flex items-center gap-3">
+            <div className="flex rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden text-xs font-medium">
+              <button
+                onClick={() => setDayView('today')}
+                className={`px-3 py-1.5 transition-colors ${
+                  dayView === 'today'
+                    ? 'bg-primary-600 text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                Today
+              </button>
+              <button
+                onClick={() => setDayView('tomorrow')}
+                className={`px-3 py-1.5 transition-colors border-l border-gray-200 dark:border-gray-700 ${
+                  dayView === 'tomorrow'
+                    ? 'bg-primary-600 text-white'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                Tomorrow
+              </button>
+            </div>
+            <span className="text-sm text-gray-500 dark:text-gray-400">{dayLabel}</span>
+          </div>
           <Link
             to="/calendar"
             className="text-xs text-primary-600 dark:text-primary-400 hover:underline"
@@ -111,60 +187,21 @@ export function DashboardPage() {
           </Link>
         </div>
 
-        {tomorrowLoading ? (
+        {dayLoading ? (
           <p className="text-sm text-gray-400 text-center py-4">Loading…</p>
-        ) : tomorrowTasks.length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-4">No tasks scheduled for tomorrow.</p>
+        ) : dayTasks.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">{emptyMsg}</p>
         ) : (
           <div className="space-y-2">
-            {tomorrowTasks.map((task) => {
-              const d = new Date(task.dueDate!);
-              const hasTime = d.getHours() !== 0 || d.getMinutes() !== 0;
-              return (
-                <button
-                  key={task.id}
-                  onClick={() => setEditingTask(task)}
-                  className="w-full flex items-center gap-3 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-left"
-                >
-                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${PRIORITY_STYLES[task.priority]}`}>
-                    {task.priority}
-                  </span>
-                  <span className="flex-1 text-sm text-gray-800 dark:text-gray-100 truncate">
-                    {task.title}
-                  </span>
-                  {hasTime && (
-                    <span className="shrink-0 text-xs text-gray-400 dark:text-gray-500">
-                      {format(d, 'h:mm a')}
-                    </span>
-                  )}
-                  {task.location && (
-                    <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(task.location)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="shrink-0 text-xs text-primary-600 dark:text-primary-400 hover:underline"
-                      title={task.location}
-                    >
-                      📍
-                    </a>
-                  )}
-                  {task.webLink && (
-                    <a
-                      href={task.webLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      onClick={(e) => e.stopPropagation()}
-                      className="shrink-0 text-xs text-primary-600 dark:text-primary-400 hover:underline"
-                      title={task.webLink}
-                    >
-                      🔗
-                    </a>
-                  )}
-                  <span className="shrink-0 text-gray-300 dark:text-gray-600 text-xs">✎</span>
-                </button>
-              );
-            })}
+            {dayTasks.map((task) => (
+              <TaskCard
+                key={task.id}
+                task={task}
+                onToggle={handleToggle}
+                onEdit={setEditingTask}
+                onDelete={handleDelete}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -190,7 +227,6 @@ export function DashboardPage() {
         </Link>
       </div>
 
-      {/* Edit modal */}
       {editingTask && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"

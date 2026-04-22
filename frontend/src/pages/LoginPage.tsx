@@ -12,6 +12,7 @@ interface FormValues {
 
 export function LoginPage() {
   const [needsTotp, setNeedsTotp] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const login = useAuthStore((s) => s.login);
   const navigate = useNavigate();
   const { register, handleSubmit, formState: { isSubmitting, errors } } = useForm<FormValues>();
@@ -56,12 +57,22 @@ export function LoginPage() {
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Password
               </label>
-              <input
-                {...register('password', { required: 'Password is required' })}
-                type="password"
-                autoComplete="current-password"
-                className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
-              />
+              <div className="relative">
+                <input
+                  {...register('password', { required: 'Password is required' })}
+                  type={showPassword ? 'text' : 'password'}
+                  autoComplete="current-password"
+                  className="w-full rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 px-3 py-2 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((v) => !v)}
+                  className="absolute inset-y-0 right-0 flex items-center px-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showPassword ? '🙈' : '👁'}
+                </button>
+              </div>
               {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password.message}</p>}
             </div>
 

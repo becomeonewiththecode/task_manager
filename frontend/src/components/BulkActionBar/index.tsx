@@ -51,6 +51,12 @@ export function BulkActionBar() {
       >
         Reopen
       </button>
+      <button
+        onClick={() => handleStatus('CANCELLED')}
+        className="px-3 py-1.5 text-xs font-medium bg-orange-600 hover:bg-orange-700 rounded-lg transition-colors"
+      >
+        Cancel
+      </button>
 
       <select
         onChange={(e) => e.target.value && handlePriority(e.target.value as Priority)}

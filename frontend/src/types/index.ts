@@ -1,5 +1,5 @@
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH';
-export type TaskStatus = 'ACTIVE' | 'COMPLETED';
+export type TaskStatus = 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
 export type Recurring = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 
 export interface Category {
@@ -70,6 +70,7 @@ export interface Task {
   recurring?: Recurring;
   location?: string;
   webLink?: string;
+  durationMinutes?: number;
   sortOrder: number;
   createdAt: string;
   updatedAt: string;

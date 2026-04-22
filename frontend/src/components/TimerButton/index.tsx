@@ -20,48 +20,59 @@ function formatMs(ms: number) {
 
 export function TimerButton({ taskId, activeEntry, onChanged }: Props) {
   const [elapsed, setElapsed] = useState(0);
+  const [optimisticStart, setOptimisticStart] = useState<Date | null>(null);
+
+  const serverActive = activeEntry && activeEntry.taskId === taskId && !activeEntry.endedAt;
+  const isActive = serverActive || optimisticStart !== null;
+  const startTime = serverActive ? new Date(activeEntry.startedAt) : optimisticStart;
 
   useEffect(() => {
-    if (!activeEntry || activeEntry.endedAt) { setElapsed(0); return; }
-    const tick = () => setElapsed(Date.now() - new Date(activeEntry.startedAt).getTime());
+    if (!isActive || !startTime) { setElapsed(0); return; }
+    const tick = () => setElapsed(Date.now() - startTime.getTime());
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [activeEntry]);
+  }, [isActive, startTime?.getTime()]);
 
-  const handleStart = async () => {
-    try {
-      await timeEntriesService.start(taskId);
-      onChanged();
-    } catch {
-      toast.error('Failed to start timer');
+  // Clear optimistic state once server confirms
+  useEffect(() => {
+    if (serverActive) setOptimisticStart(null);
+  }, [serverActive]);
+
+  const handleToggle = async () => {
+    if (isActive) {
+      setOptimisticStart(null);
+      if (!activeEntry) return;
+      try {
+        await timeEntriesService.stop(taskId, activeEntry.id);
+        onChanged();
+      } catch {
+        toast.error('Failed to stop timer');
+      }
+    } else {
+      setOptimisticStart(new Date());
+      try {
+        await timeEntriesService.start(taskId);
+        onChanged();
+      } catch {
+        setOptimisticStart(null);
+        toast.error('Failed to start timer');
+      }
     }
   };
-
-  const handleStop = async () => {
-    if (!activeEntry) return;
-    try {
-      await timeEntriesService.stop(taskId, activeEntry.id);
-      onChanged();
-    } catch {
-      toast.error('Failed to stop timer');
-    }
-  };
-
-  const isActive = activeEntry && activeEntry.taskId === taskId && !activeEntry.endedAt;
 
   return (
     <button
-      onClick={isActive ? handleStop : handleStart}
+      onClick={handleToggle}
       title={isActive ? 'Stop timer' : 'Start timer'}
       className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
         isActive
-          ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200'
+          ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400 hover:bg-red-200'
           : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:hover:text-gray-200'
       }`}
     >
-      {isActive ? '⏹' : '▶'}
-      {isActive && <span className="font-mono">{formatMs(elapsed)}</span>}
+      <span className={`inline-block w-2.5 h-2.5 rounded-full ${isActive ? 'bg-red-500 animate-pulse' : 'bg-gray-300 dark:bg-gray-500'}`} />
+      {isActive && <span className="font-mono tabular-nums">{formatMs(elapsed)}</span>}
     </button>
   );
 }

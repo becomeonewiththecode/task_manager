@@ -10,6 +10,7 @@ interface TaskState {
   filters: TaskFilters;
   loading: boolean;
   selectedIds: Set<string>;
+  taskVersion: number;
 
   fetchTasks: (filters?: TaskFilters) => Promise<void>;
   createTask: (data: Partial<Task> & { categoryIds?: string[] }) => Promise<void>;
@@ -17,6 +18,7 @@ interface TaskState {
   deleteTask: (id: string) => Promise<void>;
   reorderTasks: (ids: string[]) => Promise<void>;
   setFilters: (filters: TaskFilters) => void;
+  invalidate: () => void;
 
   toggleSelect: (id: string) => void;
   selectAll: () => void;
@@ -33,6 +35,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   filters: {},
   loading: false,
   selectedIds: new Set(),
+  taskVersion: 0,
 
   fetchTasks: async (filters) => {
     const merged = { ...get().filters, ...filters };
@@ -48,17 +51,18 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   createTask: async (data) => {
     await tasksService.create(data);
     await get().fetchTasks();
+    set((s) => ({ taskVersion: s.taskVersion + 1 }));
   },
 
   updateTask: async (id, data) => {
     const updated = await tasksService.update(id, data);
-    set((s) => ({ tasks: s.tasks.map((t) => (t.id === id ? updated : t)) }));
+    set((s) => ({ tasks: s.tasks.map((t) => (t.id === id ? updated : t)), taskVersion: s.taskVersion + 1 }));
     return updated;
   },
 
   deleteTask: async (id) => {
     await tasksService.delete(id);
-    set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id) }));
+    set((s) => ({ tasks: s.tasks.filter((t) => t.id !== id), taskVersion: s.taskVersion + 1 }));
   },
 
   reorderTasks: async (ids) => {
@@ -68,6 +72,8 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   setFilters: (filters) => set((s) => ({ filters: { ...s.filters, ...filters } })),
+
+  invalidate: () => set((s) => ({ taskVersion: s.taskVersion + 1 })),
 
   toggleSelect: (id) =>
     set((s) => {

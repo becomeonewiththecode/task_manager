@@ -41,9 +41,10 @@ model Task {
   status      TaskStatus  @default(ACTIVE)
   dueDate     DateTime?
   recurring   Recurring?
-  location    String?
-  webLink     String?
-  sortOrder   Int         @default(0)
+  location        String?
+  webLink         String?
+  durationMinutes Int?
+  sortOrder       Int         @default(0)
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   deletedAt   DateTime?
@@ -194,6 +195,7 @@ enum Priority {
 enum TaskStatus {
   ACTIVE
   COMPLETED
+  CANCELLED
 }
 
 enum Recurring {
