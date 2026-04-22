@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { format, isSameDay, endOfDay, startOfDay, addDays } from 'date-fns';
+import { format, isSameDay, endOfDay, addDays } from 'date-fns';
 import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
 import { usersService } from '@/services/users.service';
@@ -57,9 +57,10 @@ export function DashboardPage() {
 
   const loadDayTasks = useCallback((day: Date) => {
     setDayLoading(true);
-    const from = startOfDay(day).toISOString();
+    // Fetch all tasks up to end-of-day; recurring tasks have past due dates so
+    // we can't filter by dueDateFrom — getTasksForDay handles the day matching.
     const to = endOfDay(day).toISOString();
-    tasksService.list({ dueDateFrom: from, dueDateTo: to, limit: 500, status: 'ACTIVE' })
+    tasksService.list({ dueDateTo: to, limit: 500, status: 'ACTIVE' })
       .then((r) => setDayTasks(getTasksForDay(r.tasks, day)))
       .catch(console.error)
       .finally(() => setDayLoading(false));
