@@ -10,14 +10,14 @@ cp .env.example .env
 cp backend/.env.example backend/.env   # fill in secrets
 
 # 2. Start all services
-docker compose up -d
+docker compose -f docker-compose.yml up -d
 
 # 3. Run database migrations + seed
-docker compose exec backend npm run db:migrate
-docker compose exec backend npm run db:seed
+docker compose -f docker-compose.yml exec backend npm run db:migrate
+docker compose -f docker-compose.yml exec backend npm run db:seed
 
 # 4. Open
-# App: http://localhost:3333
+# App: http://localhost:3333  (plain HTTP — no SSL required)
 # Demo login: demo@example.com / Password123!
 ```
 
@@ -39,24 +39,27 @@ npm run dev            # http://localhost:3333
 
 ```
 task_manager/
-├── backend/
-│   ├── prisma/
-│   │   └── schema.prisma      # DB schema (Users, Tasks, Categories, Sessions)
+├── docker-compose.yml         # Local dev / self-hosted (builds from source, plain HTTP)
+├── compose.yml                # Pre-built image deployment
+├── frontend/
+│   ├── nginx.conf             # Mounted into container; serves plain HTTP on port 80
 │   └── src/
-│       ├── config/            # Env validation (zod)
-│       ├── controllers/       # Request handlers
-│       ├── middleware/        # Auth, error, rate limiting, validation
-│       ├── routes/            # /api/v1/auth|tasks|users|categories
-│       ├── services/          # Business logic
-│       └── utils/             # JWT, bcrypt, pino logger, Redis client
-└── frontend/
+│       ├── components/        # Layout, TaskCard, TaskForm, FilterBar
+│       ├── hooks/             # useAuth, useTasks
+│       ├── pages/             # Login, Register, Dashboard, Tasks, Settings
+│       ├── services/          # Axios API clients
+│       ├── store/             # Zustand (auth, tasks, ui/theme)
+│       └── types/             # Shared TypeScript types
+└── backend/
+    ├── prisma/
+    │   └── schema.prisma      # DB schema (Users, Tasks, Categories, Sessions, TimeEntries, etc.)
     └── src/
-        ├── components/        # Layout, TaskCard, TaskForm, FilterBar
-        ├── hooks/             # useAuth, useTasks
-        ├── pages/             # Login, Register, Dashboard, Tasks, Settings
-        ├── services/          # Axios API clients
-        ├── store/             # Zustand (auth, tasks, ui/theme)
-        └── types/             # Shared TypeScript types
+        ├── config/            # Env validation (zod)
+        ├── controllers/       # Request handlers
+        ├── middleware/        # Auth, error, rate limiting, validation
+        ├── routes/            # /api/v1/auth|tasks|users|categories
+        ├── services/          # Business logic (incl. export/import in users.service.ts)
+        └── utils/             # JWT, bcrypt, pino logger, Redis client
 ```
 
 ## API overview

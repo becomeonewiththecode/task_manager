@@ -55,8 +55,8 @@ Users can
 - ✅ Ability to change password and username (email)
 
 ### Data
-- ✅ Export tasks to JSON (backup/restore via SettingsPage)
-- ✅ Import tasks from backup file (overwrites existing data on restore)
+- ✅ Export tasks to JSON (backup/restore via SettingsPage) — includes all fields: title, description, priority, status, dueDate, recurring, location, webLink, durationMinutes, sortOrder, parentId, categories, dependencies, timeEntries
+- ✅ Import tasks from backup file (overwrites existing data on restore) — restores all fields including location, webLink, durationMinutes
 
 ### Notifications & Reminders
 - ❌ Notification system for task reminders and due dates
@@ -119,7 +119,7 @@ Users can
 - ✅ Compression middleware (gzip)
 - ✅ Structured logging (pino)
 - ✅ Error handling middleware with HTTP status codes
-- ❌ Health check endpoint — not confirmed present
+- ✅ Health check endpoint (`GET /health`)
 - ❌ Centralized config validation — no `/src/config/` directory
 
 ### Auth & Security
@@ -157,11 +157,13 @@ Users can
 
 - ✅ Multi-stage Dockerfiles for frontend and backend
 - ✅ Separate containers: frontend, backend, PostgreSQL, Redis
-- ✅ Docker Compose orchestration
+- ✅ Docker Compose orchestration (`docker-compose.yml`)
 - ✅ Volume mounts for DB persistence
+- ✅ nginx.conf mounted as volume — config changes take effect on `docker compose up -d --force-recreate frontend` without rebuilding the image
 - ✅ docker-compose.override.yml for local dev
-- ❌ Health checks configured per container
-- ❌ Resource limits (CPU/memory) per service
+- ✅ Backend health check (`wget -qO- http://localhost:4000/health`) — `curl` not available in Alpine image
+- ✅ Resource limits (memory) on db (512 MB) and redis (128 MB); backend and frontend uncapped
+- ✅ Frontend serves plain HTTP on port 3333 (no SSL) — simplifies local network access; HTTPS removed since no trusted cert
 - ⏭ CI/CD pipeline (GitHub Actions) — manual deploys via `docker-compose up -d` until Phase 2
 
 ---
@@ -174,7 +176,8 @@ Users can
 - ⏭ Advanced analytics with more charts and insights
 - ⏭ File attachments with cloud storage
 - ⏭ Third-party integrations (Slack, Google Calendar, Trello import)
-- ⏭ Voice input for task title (hook + UI built; blocked by HTTP — Web Speech API requires HTTPS)
+- ⏭ Voice input for task title (hook + UI built; blocked — Web Speech API requires HTTPS; app currently serves plain HTTP)
+- ⏭ Push notifications via Web Push API (requires HTTPS; app currently serves plain HTTP on local network)
 - ✅ Customizable keyboard shortcuts (Settings > Shortcuts tab — click to reassign any key)
 - ⏭ AI-powered task suggestions
 - ⏭ Custom fields per task
@@ -184,13 +187,11 @@ Users can
 
 ## Remaining Phase 1 Work (Priority Order)
 
-1. ❌ Health check endpoint (`GET /api/health`)
-2. ❌ Notification / reminder system (frontend UI + backend trigger)
-3. ❌ Background job queue (Bull/BullMQ) — prerequisite for notifications and recurring tasks
-4. ❌ OpenAPI/Swagger documentation
-5. ❌ Additional i18n locales beyond English
-6. ✅ 4 themes — Light, Dark, Ocean, Forest all functional; moved to Settings > Appearance
-7. ❌ Test coverage (backend unit + API tests, frontend component + E2E tests)
-8. ❌ Docker health checks and resource limits per service
-9. ❌ Centralized env config validation (`/src/config/`)
-10. ❌ OAuth social login (Gmail, GitHub, Facebook)
+1. ❌ Notification / reminder system (frontend UI + backend trigger)
+2. ❌ Background job queue (Bull/BullMQ) — prerequisite for notifications and recurring tasks
+3. ❌ OpenAPI/Swagger documentation
+4. ❌ Additional i18n locales beyond English
+5. ✅ 4 themes — Light, Dark, Ocean, Forest all functional; moved to Settings > Appearance
+6. ❌ Test coverage (backend unit + API tests, frontend component + E2E tests)
+7. ❌ Centralized env config validation (`/src/config/`)
+8. ❌ OAuth social login (Gmail, GitHub, Facebook)
