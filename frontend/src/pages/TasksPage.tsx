@@ -27,6 +27,7 @@ export function TasksPage() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [activeTimerEntry, setActiveTimerEntry] = useState<TimeEntry | null>(null);
+  const [timeEntriesVersion, setTimeEntriesVersion] = useState(0);
   const searchTimeout = useRef<ReturnType<typeof setTimeout>>();
   const [searchParams] = useSearchParams();
 
@@ -49,6 +50,7 @@ export function TasksPage() {
     try {
       const entry = await timeEntriesService.getActive();
       setActiveTimerEntry(entry);
+      setTimeEntriesVersion((v) => v + 1);
     } catch { /* ignore */ }
   };
 
@@ -132,6 +134,7 @@ export function TasksPage() {
             categories={categories}
             onSubmit={handleFormSubmit}
             onCancel={() => { setShowForm(false); setEditingTask(null); }}
+            timeVersion={timeEntriesVersion}
           />
         </div>
       )}

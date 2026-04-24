@@ -29,9 +29,10 @@ interface Props {
   onSubmit: (data: Partial<Task> & { categoryIds?: string[] }) => Promise<void>;
   onCancel: () => void;
   defaultDueDate?: string;
+  timeVersion?: number;
 }
 
-export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate }: Props) {
+export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate, timeVersion }: Props) {
   const { register, handleSubmit, reset, setValue, watch, formState: { isSubmitting } } = useForm<FormValues>({
     defaultValues: {
       title: '',
@@ -78,10 +79,15 @@ export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate 
       });
       if (task.id) {
         taskSharesService.list(task.id).then(setShares).catch(() => {});
-        timeEntriesService.list(task.id).then(setTimeEntries).catch(() => {});
       }
     }
   }, [task, reset]);
+
+  useEffect(() => {
+    if (task?.id) {
+      timeEntriesService.list(task.id).then(setTimeEntries).catch(() => {});
+    }
+  }, [task?.id, timeVersion]);
 
   const onFormSubmit = async (values: FormValues) => {
     let dueDate: string | undefined;

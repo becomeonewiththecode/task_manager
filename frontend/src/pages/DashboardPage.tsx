@@ -14,21 +14,30 @@ import toast from 'react-hot-toast';
 type DayView = 'today' | 'tomorrow';
 
 function getTasksForDay(allTasks: Task[], day: Date): Task[] {
-  const filtered = allTasks.filter((t) => {
-    if (!t.dueDate) return false;
+  const filtered = allTasks.reduce<Task[]>((acc, t) => {
+    if (!t.dueDate) return acc;
     const due = new Date(t.dueDate);
-    if (isSameDay(due, day)) return true;
-    if (!t.recurring) return false;
+    if (isSameDay(due, day)) {
+      acc.push(t);
+      return acc;
+    }
+    if (!t.recurring) return acc;
     const dayMid = new Date(day.getFullYear(), day.getMonth(), day.getDate());
     const dueMid = new Date(due.getFullYear(), due.getMonth(), due.getDate());
-    if (dayMid < dueMid) return false;
+    if (dayMid < dueMid) return acc;
+    let include = false;
     switch (t.recurring) {
-      case 'DAILY': return true;
-      case 'WEEKLY': return day.getDay() === due.getDay();
-      case 'MONTHLY': return day.getDate() === due.getDate();
-      default: return false;
+      case 'DAILY': include = true; break;
+      case 'WEEKLY': include = day.getDay() === due.getDay(); break;
+      case 'MONTHLY': include = day.getDate() === due.getDate(); break;
     }
-  });
+    if (include) {
+      // Project the occurrence date to the viewed day, preserving original time
+      const occurrence = new Date(day.getFullYear(), day.getMonth(), day.getDate(), due.getHours(), due.getMinutes());
+      acc.push({ ...t, dueDate: occurrence.toISOString() });
+    }
+    return acc;
+  }, []);
   return filtered.sort((a, b) => {
     const aD = new Date(a.dueDate!);
     const bD = new Date(b.dueDate!);
