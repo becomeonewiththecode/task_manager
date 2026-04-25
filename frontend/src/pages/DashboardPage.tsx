@@ -5,6 +5,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useTaskStore } from '@/store/taskStore';
 import { usersService } from '@/services/users.service';
 import { tasksService } from '@/services/tasks.service';
+import { recurringCompletionsService } from '@/services/recurringCompletions.service';
 import { categoriesService } from '@/services/categories.service';
 import { TaskForm } from '@/components/TaskForm';
 import { TaskCard } from '@/components/TaskCard';
@@ -14,11 +15,15 @@ import toast from 'react-hot-toast';
 type DayView = 'today' | 'tomorrow';
 
 function getTasksForDay(allTasks: Task[], day: Date): Task[] {
+  const dayStr = format(day, 'yyyy-MM-dd');
   const filtered = allTasks.reduce<Task[]>((acc, t) => {
     if (!t.dueDate) return acc;
     const due = new Date(t.dueDate);
+    const isOccurrenceDone = t.recurring
+      ? (t.recurringCompletions?.some((c) => c.date === dayStr) ?? false)
+      : false;
     if (isSameDay(due, day)) {
-      acc.push(t);
+      acc.push(isOccurrenceDone ? { ...t, status: 'COMPLETED' } : t);
       return acc;
     }
     if (!t.recurring) return acc;
@@ -34,7 +39,7 @@ function getTasksForDay(allTasks: Task[], day: Date): Task[] {
     if (include) {
       // Project the occurrence date to the viewed day, preserving original time
       const occurrence = new Date(day.getFullYear(), day.getMonth(), day.getDate(), due.getHours(), due.getMinutes());
-      acc.push({ ...t, dueDate: occurrence.toISOString() });
+      acc.push({ ...t, dueDate: occurrence.toISOString(), ...(isOccurrenceDone && { status: 'COMPLETED' }) });
     }
     return acc;
   }, []);
@@ -87,10 +92,22 @@ export function DashboardPage() {
 
   const handleToggle = async (task: Task) => {
     try {
-      const updated = await tasksService.update(task.id, {
-        status: task.status === 'ACTIVE' ? 'COMPLETED' : 'ACTIVE',
-      });
-      setDayTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      if (task.recurring && task.dueDate) {
+        const date = format(new Date(task.dueDate), 'yyyy-MM-dd');
+        const { completed } = await recurringCompletionsService.toggle(task.id, date);
+        setDayTasks((prev) =>
+          prev.map((t) =>
+            t.id === task.id && t.dueDate === task.dueDate
+              ? { ...t, status: completed ? 'COMPLETED' : 'ACTIVE' }
+              : t,
+          ),
+        );
+      } else {
+        const updated = await tasksService.update(task.id, {
+          status: task.status === 'ACTIVE' ? 'COMPLETED' : 'ACTIVE',
+        });
+        setDayTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      }
     } catch {
       toast.error('Failed to update task');
     }

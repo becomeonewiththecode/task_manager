@@ -14,6 +14,7 @@ export async function list(req: Request, res: Response, next: NextFunction) {
       dueDateFrom: req.query.dueDateFrom as string,
       dueDateTo: req.query.dueDateTo as string,
       parentId: req.query.parentId === 'null' ? null : (req.query.parentId as string | undefined),
+      recurring: req.query.recurring === 'true' ? true : undefined,
     });
     res.json(result);
   } catch (err) {

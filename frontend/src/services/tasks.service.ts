@@ -11,6 +11,7 @@ export interface TaskFilters {
   dueDateFrom?: string;
   dueDateTo?: string;
   parentId?: string | null;
+  recurring?: boolean;
 }
 
 export const tasksService = {

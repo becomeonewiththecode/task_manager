@@ -43,44 +43,72 @@ export function CalendarPage() {
 
   // Compute fetch range based on view
   useEffect(() => {
-    let from: string, to: string;
+    setLoading(true);
+    let rangePromise: Promise<Task[]>;
     if (view === 'month') {
       const ms = startOfMonth(viewDate);
       const me = endOfMonth(viewDate);
-      from = format(startOfWeek(ms), 'yyyy-MM-dd');
-      to = format(endOfWeek(me), 'yyyy-MM-dd');
+      const from = format(startOfWeek(ms), 'yyyy-MM-dd');
+      const to = format(endOfWeek(me), 'yyyy-MM-dd');
+      rangePromise = Promise.all([
+        tasksService.list({ dueDateFrom: from, dueDateTo: to, limit: 500 }).then((r) => r.tasks),
+        tasksService.list({ recurring: true, dueDateTo: to, limit: 500 }).then((r) => r.tasks),
+      ]).then(([range, recurring]) => {
+        const seen = new Set<string>();
+        return [...range, ...recurring].filter((t) => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
+      });
     } else if (view === 'week') {
-      from = format(startOfWeek(viewDate), 'yyyy-MM-dd');
-      to = format(endOfWeek(viewDate), 'yyyy-MM-dd');
+      const from = format(startOfWeek(viewDate), 'yyyy-MM-dd');
+      const to = format(endOfWeek(viewDate), 'yyyy-MM-dd');
+      rangePromise = Promise.all([
+        tasksService.list({ dueDateFrom: from, dueDateTo: to, limit: 500 }).then((r) => r.tasks),
+        tasksService.list({ recurring: true, dueDateTo: to, limit: 500 }).then((r) => r.tasks),
+      ]).then(([range, recurring]) => {
+        const seen = new Set<string>();
+        return [...range, ...recurring].filter((t) => { if (seen.has(t.id)) return false; seen.add(t.id); return true; });
+      });
     } else {
-      from = format(viewDate, 'yyyy-MM-dd');
-      to = format(viewDate, 'yyyy-MM-dd');
+      // Day view: omit dueDateFrom so recurring tasks with earlier original
+      // due dates are included; tasksForDay() filters to today via recurrence logic.
+      rangePromise = tasksService
+        .list({ dueDateTo: format(viewDate, 'yyyy-MM-dd'), limit: 500 })
+        .then((r) => r.tasks);
     }
-    setLoading(true);
-    tasksService
-      .list({ dueDateFrom: from, dueDateTo: to, limit: 500 })
-      .then((r) => setTasks(r.tasks))
+    rangePromise
+      .then((tasks) => setTasks(tasks))
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [view, viewDate]);
 
   const tasksForDay = (day: Date) => {
-    const matched = tasks.filter((t) => {
-      if (t.status === 'COMPLETED') return false;
-      if (!t.dueDate) return false;
+    const dayStr = format(day, 'yyyy-MM-dd');
+    const matched = tasks.reduce<Task[]>((acc, t) => {
+      if (t.status === 'COMPLETED') return acc;
+      if (!t.dueDate) return acc;
       const due = new Date(t.dueDate);
-      if (isSameDay(due, day)) return true;
-      if (!t.recurring) return false;
+      const isOccurrenceDone = t.recurring
+        ? (t.recurringCompletions?.some((c) => c.date === dayStr) ?? false)
+        : false;
+      if (isSameDay(due, day)) {
+        if (!isOccurrenceDone) acc.push(t);
+        return acc;
+      }
+      if (!t.recurring) return acc;
       const dayMid = new Date(day.getFullYear(), day.getMonth(), day.getDate());
       const dueMid = new Date(due.getFullYear(), due.getMonth(), due.getDate());
-      if (dayMid < dueMid) return false;
+      if (dayMid < dueMid) return acc;
+      let include = false;
       switch (t.recurring) {
-        case 'DAILY': return true;
-        case 'WEEKLY': return day.getDay() === due.getDay();
-        case 'MONTHLY': return day.getDate() === due.getDate();
-        default: return false;
+        case 'DAILY': include = true; break;
+        case 'WEEKLY': include = day.getDay() === due.getDay(); break;
+        case 'MONTHLY': include = day.getDate() === due.getDate(); break;
       }
-    });
+      if (include && !isOccurrenceDone) {
+        const occurrence = new Date(day.getFullYear(), day.getMonth(), day.getDate(), due.getHours(), due.getMinutes());
+        acc.push({ ...t, dueDate: occurrence.toISOString() });
+      }
+      return acc;
+    }, []);
     return matched.sort((a, b) => {
       const aDate = new Date(a.dueDate!);
       const bDate = new Date(b.dueDate!);

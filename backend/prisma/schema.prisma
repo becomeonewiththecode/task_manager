@@ -56,11 +56,12 @@ model Task {
   parent      Task?       @relation("SubTasks", fields: [parentId], references: [id])
   subtasks    Task[]      @relation("SubTasks")
 
-  tags             TaskTag[]
-  dependencies     TaskDependency[] @relation("DependencyTask")
-  dependedOnBy     TaskDependency[] @relation("DependencyOn")
-  timeEntries      TimeEntry[]
-  shares           TaskShare[]
+  tags                 TaskTag[]
+  dependencies         TaskDependency[] @relation("DependencyTask")
+  dependedOnBy         TaskDependency[] @relation("DependencyOn")
+  timeEntries          TimeEntry[]
+  shares               TaskShare[]
+  recurringCompletions RecurringCompletion[]
 
   @@index([userId])
   @@index([status])
@@ -184,6 +185,18 @@ model AuditLog {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+model RecurringCompletion {
+  id        String   @id @default(cuid())
+  taskId    String
+  date      String   // YYYY-MM-DD
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, date])
+  @@index([taskId])
 }
 
 enum Priority {

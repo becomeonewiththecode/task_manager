@@ -91,8 +91,9 @@ export function TaskForm({ task, categories, onSubmit, onCancel, defaultDueDate,
 
   const onFormSubmit = async (values: FormValues) => {
     let dueDate: string | undefined;
-    if (values.dueDate) {
-      dueDate = new Date(`${values.dueDate}T${values.dueTime || '00:00'}`).toISOString();
+    if (values.dueDate || values.dueTime) {
+      const dateStr = values.dueDate || format(new Date(), 'yyyy-MM-dd');
+      dueDate = new Date(`${dateStr}T${values.dueTime || '00:00'}`).toISOString();
     }
     const hours = parseInt(values.durationHours || '0', 10) || 0;
     const mins = parseInt(values.durationMins || '0', 10) || 0;

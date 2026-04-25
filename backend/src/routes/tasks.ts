@@ -2,6 +2,7 @@ import { Router } from 'express';
 import * as ctrl from '../controllers/tasks.controller';
 import * as teCtrl from '../controllers/timeEntries.controller';
 import * as shareCtrl from '../controllers/taskShares.controller';
+import * as rcCtrl from '../controllers/recurringCompletions.controller';
 import { authenticate } from '../middleware/auth.middleware';
 
 const router = Router();
@@ -32,6 +33,9 @@ router.patch('/:taskId/time-entries/:entryId/stop', teCtrl.stop);
 router.get('/:taskId/time-entries/total', teCtrl.total);
 router.get('/:taskId/time-entries', teCtrl.list);
 router.delete('/:taskId/time-entries/:entryId', teCtrl.remove);
+
+// Recurring occurrence completions
+router.post('/:id/occurrences/:date/toggle', rcCtrl.toggle);
 
 // Shares
 router.post('/:taskId/shares', shareCtrl.create);

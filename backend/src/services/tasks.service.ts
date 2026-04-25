@@ -9,6 +9,7 @@ const TASK_INCLUDE = {
   subtasks: { where: { deletedAt: null }, include: { tags: { include: { category: true } } } },
   dependencies: { select: { dependsOnId: true } },
   dependedOnBy: { select: { taskId: true } },
+  recurringCompletions: { select: { date: true } },
 };
 
 export interface TaskFilters {
@@ -21,11 +22,16 @@ export interface TaskFilters {
   dueDateFrom?: string;
   dueDateTo?: string;
   parentId?: string | null;
+  recurring?: boolean;
 }
 
 export async function listTasks(userId: string, filters: TaskFilters) {
-  const { status, priority, categoryId, search, page = 1, limit = 20, dueDateFrom, dueDateTo, parentId } = filters;
+  const { status, priority, categoryId, search, page = 1, limit = 20, dueDateFrom, dueDateTo, parentId, recurring } = filters;
   const skip = (page - 1) * limit;
+
+  const dueDateToNorm = dueDateTo
+    ? new Date(/T/.test(dueDateTo) ? dueDateTo : `${dueDateTo}T23:59:59.999Z`)
+    : undefined;
 
   const where: any = {
     userId,
@@ -35,12 +41,19 @@ export async function listTasks(userId: string, filters: TaskFilters) {
     ...(priority && { priority }),
     ...(search && { title: { contains: search, mode: 'insensitive' as const } }),
     ...(categoryId && { tags: { some: { categoryId } } }),
-    ...((dueDateFrom || dueDateTo) && {
-      dueDate: {
-        ...(dueDateFrom && { gte: new Date(dueDateFrom) }),
-        ...(dueDateTo && { lte: new Date(/T/.test(dueDateTo) ? dueDateTo : `${dueDateTo}T23:59:59.999Z`) }),
-      },
-    }),
+    // When recurring=true fetch only recurring tasks using only dueDateTo so tasks
+    // whose original dueDate predates the view window are still returned.
+    ...(recurring === true
+      ? {
+          recurring: { not: null },
+          ...(dueDateToNorm && { dueDate: { lte: dueDateToNorm } }),
+        }
+      : (dueDateFrom || dueDateTo) && {
+          dueDate: {
+            ...(dueDateFrom && { gte: new Date(dueDateFrom) }),
+            ...(dueDateToNorm && { lte: dueDateToNorm }),
+          },
+        }),
   };
 
   const [tasks, total] = await prisma.$transaction([

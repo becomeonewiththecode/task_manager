@@ -79,6 +79,7 @@ export interface Task {
   subtasks?: Task[];
   dependencies?: TaskDependency[];
   dependedOnBy?: Array<{ taskId: string }>;
+  recurringCompletions?: Array<{ date: string }>;
 }
 
 export interface User {
