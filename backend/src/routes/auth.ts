@@ -7,6 +7,7 @@ const router = Router();
 
 router.post('/register', authLimiter, ctrl.register);
 router.post('/login', authLimiter, ctrl.login);
+router.post('/admin-login', authLimiter, ctrl.adminLogin);
 router.post('/refresh', ctrl.refresh);
 router.post('/logout', ctrl.logout);
 router.post('/totp/setup', authenticate, ctrl.setupTotp);

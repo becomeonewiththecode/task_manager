@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { authService } from '@/services/auth.service';
+import { usersService } from '@/services/users.service';
 import { useAuthStore } from '@/store/authStore';
 
 interface FormValues {
@@ -10,22 +12,29 @@ interface FormValues {
   totpCode: string;
 }
 
-export function LoginPage() {
+export function AdminLoginPage() {
   const [needsTotp, setNeedsTotp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const login = useAuthStore((s) => s.login);
+  const setUser = useAuthStore((s) => s.setUser);
   const navigate = useNavigate();
   const { register, handleSubmit, formState: { isSubmitting, errors } } = useForm<FormValues>();
 
   const onSubmit = async (values: FormValues) => {
     try {
-      await login(values.email, values.password, values.totpCode || undefined);
-      navigate('/');
+      const tokens = await authService.adminLogin({
+        email: values.email,
+        password: values.password,
+        totpCode: values.totpCode || undefined,
+      });
+      useAuthStore.setState({ accessToken: tokens.accessToken, refreshToken: tokens.refreshToken });
+      const user = await usersService.getProfile();
+      setUser(user);
+      navigate('/admin');
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data?.error?.includes('TOTP')) {
         setNeedsTotp(true);
       } else {
-        toast.error(err.response?.data?.error ?? 'Login failed');
+        toast.error(err.response?.data?.error ?? 'Admin login failed');
       }
     }
   };
@@ -34,8 +43,11 @@ export function LoginPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">TaskManager</h1>
-          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Sign in to your account</p>
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-primary-100 dark:bg-primary-900/30 mb-4">
+            <span className="text-xl font-bold text-primary-600 dark:text-primary-400">A</span>
+          </div>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Admin Login</h1>
+          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">Sign in with an admin account</p>
         </div>
 
         <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8">
@@ -99,13 +111,14 @@ export function LoginPage() {
               disabled={isSubmitting}
               className="w-full py-2.5 px-4 text-sm font-medium bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors disabled:opacity-50"
             >
-              {isSubmitting ? 'Signing in…' : 'Sign in'}
+              {isSubmitting ? 'Signing in…' : 'Sign in as Admin'}
             </button>
           </form>
 
           <p className="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
-            <Link to="/admin/login" className="text-primary-600 hover:text-primary-700 font-medium">
-              Admin login
+            Not an admin?{' '}
+            <Link to="/login" className="text-primary-600 hover:text-primary-700 font-medium">
+              User login
             </Link>
           </p>
           <p className="mt-2 text-center text-sm text-gray-500 dark:text-gray-400">

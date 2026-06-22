@@ -36,6 +36,17 @@ export async function register(email: string, username: string, password: string
   return user;
 }
 
+export async function adminLogin(email: string, password: string, totpCode?: string) {
+  const tokens = await login(email, password, totpCode);
+
+  const adminEmails = config.ADMIN_EMAILS.split(',').map(e => e.trim().toLowerCase());
+  if (!adminEmails.includes(email.toLowerCase())) {
+    throw new AppError(403, 'Admin access required');
+  }
+
+  return tokens;
+}
+
 export async function login(email: string, password: string, totpCode?: string) {
   const user = await prisma.user.findUnique({ where: { email } });
   if (!user || user.deletedAt) throw new AppError(401, 'Invalid credentials');

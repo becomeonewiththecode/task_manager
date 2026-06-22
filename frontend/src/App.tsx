@@ -11,6 +11,7 @@ import { AnalyticsPage } from '@/pages/AnalyticsPage';
 import { SharePage } from '@/pages/SharePage';
 import { TemplatesPage } from '@/pages/TemplatesPage';
 import { useAuthStore } from '@/store/authStore';
+import { AdminLoginPage } from '@/pages/AdminLoginPage';
 import AdminLayout from '@/components/Admin/AdminLayout';
 import AdminRoute from '@/components/Admin/AdminRoute';
 import AdminDashboardPage from '@/pages/AdminDashboardPage';
@@ -43,6 +44,7 @@ export default function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
         {/* Public share page — no auth required */}
         <Route path="/share/:token" element={<SharePage />} />
         <Route

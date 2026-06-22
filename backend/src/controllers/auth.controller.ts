@@ -11,6 +11,16 @@ export async function register(req: Request, res: Response, next: NextFunction) 
   }
 }
 
+export async function adminLogin(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { email, password, totpCode } = req.body;
+    const tokens = await authService.adminLogin(email, password, totpCode);
+    res.json(tokens);
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
     const { email, password, totpCode } = req.body;

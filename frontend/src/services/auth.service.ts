@@ -8,6 +8,9 @@ export const authService = {
   login: (data: { email: string; password: string; totpCode?: string }) =>
     api.post<AuthTokens>('/auth/login', data).then((r) => r.data),
 
+  adminLogin: (data: { email: string; password: string; totpCode?: string }) =>
+    api.post<AuthTokens>('/auth/admin-login', data).then((r) => r.data),
+
   refresh: (refreshToken: string) =>
     api.post<AuthTokens>('/auth/refresh', { refreshToken }).then((r) => r.data),
 
