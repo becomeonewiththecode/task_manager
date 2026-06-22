@@ -154,7 +154,29 @@ TOTP_APP_NAME=TaskManager
 VAPID_PUBLIC_KEY=REPLACE_WITH_GENERATED_PUBLIC_KEY
 VAPID_PRIVATE_KEY=REPLACE_WITH_GENERATED_PRIVATE_KEY
 VAPID_EMAIL=mailto:admin@yourdomain.com
+
+# ── Admin Configuration ─────────────────────────────────────────────────────
+# Comma-separated list of admin emails (users with admin panel access)
+ADMIN_EMAILS=admin@yourdomain.com
 ```
+
+### Email Configuration (Optional)
+
+Email notifications are configured via the Admin Panel. After deployment:
+
+1. Login with an admin email
+2. Navigate to **Admin > Mail**
+3. Configure your SMTP settings:
+   - SMTP Host (e.g., `smtp.gmail.com`)
+   - SMTP Port (e.g., `587` for TLS)
+   - SMTP User (your email address)
+   - SMTP Password (app password for Gmail)
+   - From Address (sender email)
+   - SSL/TLS (enable for port 465)
+
+4. Click **Send Test** to verify configuration
+
+Email notifications are sent automatically 15 minutes before a task is due, alongside push notifications.
 
 ### Generating required secrets
 
@@ -315,6 +337,8 @@ Copy both keys into `backend/.env`, then:
 ```bash
 docker compose -f compose.yml restart backend
 ```
+
+> **Note:** The notification scheduler runs every 60 seconds and checks for tasks due within 15 minutes. Push notifications require HTTPS to work in browsers.
 
 ---
 

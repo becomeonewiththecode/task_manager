@@ -21,18 +21,21 @@ function unescape(value: string): string {
 function parseDtstart(value: string): string | null {
   // Strip any TZID or VALUE params from property name — value is already split
   // Formats: 20260409T105000, 20260409T105000Z, 20260409
+  // Also ISO: 2026-06-08T10:10:00, 2026-06-08
   const clean = value.trim();
-  const dateOnly = /^(\d{4})(\d{2})(\d{2})$/;
-  const dateTime = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/;
+  const dateOnlyCompact = /^(\d{4})(\d{2})(\d{2})$/;
+  const dateTimeCompact = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/;
+  const dateOnlyIso = /^(\d{4})-(\d{2})-(\d{2})$/;
+  const dateTimeIso = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(Z?)$/;
 
-  const dtm = clean.match(dateTime);
+  const dtm = clean.match(dateTimeCompact) || clean.match(dateTimeIso);
   if (dtm) {
     const [, yr, mo, dy, hr, mn, sc, z] = dtm;
     const iso = `${yr}-${mo}-${dy}T${hr}:${mn}:${sc}${z === 'Z' ? 'Z' : ''}`;
     return new Date(iso).toISOString();
   }
 
-  const dm = clean.match(dateOnly);
+  const dm = clean.match(dateOnlyCompact) || clean.match(dateOnlyIso);
   if (dm) {
     const [, yr, mo, dy] = dm;
     return new Date(`${yr}-${mo}-${dy}T00:00:00`).toISOString();
@@ -51,11 +54,13 @@ export function parseIcs(text: string): IcsEvent[] {
 
   const events: IcsEvent[] = [];
   let inEvent = false;
+  let nesting = 0;
   let current: Partial<IcsEvent> & { dtstart?: string } = {};
 
   for (const line of lines) {
     if (line === 'BEGIN:VEVENT') {
       inEvent = true;
+      nesting = 0;
       current = {};
       continue;
     }
@@ -72,6 +77,16 @@ export function parseIcs(text: string): IcsEvent[] {
       continue;
     }
     if (!inEvent) continue;
+
+    if (line.startsWith('BEGIN:')) {
+      nesting++;
+      continue;
+    }
+    if (line.startsWith('END:')) {
+      nesting--;
+      continue;
+    }
+    if (nesting > 0) continue;
 
     // Split on first colon, but property name may have params (semicolon-separated)
     const colonIdx = line.indexOf(':');

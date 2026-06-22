@@ -1,5 +1,6 @@
 import { PrismaClient, Priority, Recurring } from '@prisma/client';
 import { AppError } from '../middleware/error.middleware';
+import { writeAudit } from '../utils/audit';
 import { createTask } from './tasks.service';
 
 const prisma = new PrismaClient();
@@ -18,23 +19,31 @@ export async function listTemplates(userId: string) {
 
 export async function createTemplate(userId: string, input: TemplateInput) {
   const { categoryIds = [], ...data } = input;
-  return prisma.taskTemplate.create({ data: { ...data, userId, categoryIds } });
+  const template = await prisma.taskTemplate.create({ data: { ...data, userId, categoryIds } });
+  await writeAudit(prisma, userId, 'create', 'template', template.id, { name: template.name });
+  return template;
 }
 
 export async function updateTemplate(id: string, userId: string, input: Partial<TemplateInput>) {
   const existing = await prisma.taskTemplate.findFirst({ where: { id, userId } });
   if (!existing) throw new AppError(404, 'Template not found');
   const { categoryIds, ...data } = input;
-  return prisma.taskTemplate.update({
+  const updated = await prisma.taskTemplate.update({
     where: { id },
     data: { ...data, ...(categoryIds !== undefined && { categoryIds }) },
   });
+  await writeAudit(prisma, userId, 'update', 'template', id, {
+    previousName: existing.name,
+    name: data.name ?? existing.name,
+  });
+  return updated;
 }
 
 export async function deleteTemplate(id: string, userId: string) {
   const existing = await prisma.taskTemplate.findFirst({ where: { id, userId } });
   if (!existing) throw new AppError(404, 'Template not found');
   await prisma.taskTemplate.delete({ where: { id } });
+  await writeAudit(prisma, userId, 'delete', 'template', id, { name: existing.name });
 }
 
 export async function applyTemplate(

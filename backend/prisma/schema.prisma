@@ -17,17 +17,21 @@ model User {
   totpEnabled       Boolean   @default(false)
   failedLoginCount  Int       @default(0)
   lockedUntil       DateTime?
+  isBanned          Boolean   @default(false)
+  bannedAt          DateTime?
+  banReason         String?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   deletedAt         DateTime?
 
-  tasks         Task[]
-  categories    Category[]
-  sessions      Session[]
-  auditLogs     AuditLog[]
-  timeEntries   TimeEntry[]
-  taskShares    TaskShare[]
-  taskTemplates TaskTemplate[]
+  tasks           Task[]
+  categories      Category[]
+  sessions        Session[]
+  auditLogs       AuditLog[]
+  timeEntries     TimeEntry[]
+  taskShares      TaskShare[]
+  taskTemplates   TaskTemplate[]
+  serviceRestarts ServiceRestart[]
 
   @@index([email])
   @@index([deletedAt])
@@ -215,4 +219,42 @@ enum Recurring {
   DAILY
   WEEKLY
   MONTHLY
+}
+
+model MailConfig {
+  id        String   @id @default("default")
+  smtpHost  String?
+  smtpPort  Int      @default(587)
+  smtpUser  String?
+  smtpPass  String?
+  smtpFrom  String?
+  smtpSecure Boolean @default(false)
+  updatedAt DateTime @updatedAt
+}
+
+model MailTemplate {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  subject   String
+  body      String
+  updatedAt DateTime @updatedAt
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model ServiceRestart {
+  id          String   @id @default(cuid())
+  serviceName String
+  triggeredBy String
+  reason      String?
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [triggeredBy], references: [id])
+
+  @@index([serviceName])
+  @@index([createdAt])
 }

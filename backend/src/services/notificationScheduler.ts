@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { redis } from '../utils/redis';
 import { sendNotification } from './pushSubscriptions.service';
+import { sendEmail } from './mail.service';
 import { logger } from '../utils/logger';
 
 const prisma = new PrismaClient();
@@ -25,17 +26,61 @@ async function checkAndNotify() {
     const alreadySent = await redis.get(notifiedKey);
     if (alreadySent) continue;
 
-    await redis.set(notifiedKey, '1', 'EX', NOTIFIED_TTL);
-
     const minutesLeft = Math.round((task.dueDate!.getTime() - now.getTime()) / 60000);
     const body = minutesLeft <= 1 ? 'Due now!' : `Due in ${minutesLeft} minutes`;
 
-    await sendNotification(task.userId, {
-      title: task.title,
-      body,
-      taskId: task.id,
-      url: '/tasks',
-    });
+    let emailFailed = false;
+
+    // Send push notification
+    try {
+      await sendNotification(task.userId, {
+        title: task.title,
+        body,
+        taskId: task.id,
+        url: '/tasks',
+      });
+    } catch (err) {
+      logger.error({ err, taskId: task.id }, 'Failed to send push notification');
+    }
+
+    // Send email notification if mail is configured
+    try {
+      const user = await prisma.user.findUnique({
+        where: { id: task.userId },
+        select: { email: true, username: true },
+      });
+
+      if (user?.email) {
+        const mailConfig = await prisma.mailConfig.findUnique({
+          where: { id: 'default' },
+        });
+
+        if (mailConfig?.smtpHost && mailConfig?.smtpUser && mailConfig?.smtpPass) {
+          await sendEmail(
+            user.email,
+            `Task Reminder: ${task.title}`,
+            `
+              <h1>Task Reminder</h1>
+              <p>Hi ${user.username || 'there'},</p>
+              <p>Your task <strong>${task.title}</strong> is ${body.toLowerCase()}.</p>
+              <p>Due: ${task.dueDate?.toLocaleString()}</p>
+              <hr>
+              <p style="color: #666; font-size: 12px;">Task Manager - ${new Date().toISOString()}</p>
+            `
+          );
+          logger.info({ taskId: task.id, userId: task.userId }, 'Email notification sent');
+        }
+      }
+    } catch (err) {
+      emailFailed = true;
+      logger.error({ err, taskId: task.id }, 'Failed to send email notification');
+    }
+
+    // Mark as notified only after both push and email succeed,
+    // so the next scheduler run can retry if either failed.
+    if (!emailFailed) {
+      await redis.set(notifiedKey, '1', 'EX', NOTIFIED_TTL);
+    }
   }
 }
 

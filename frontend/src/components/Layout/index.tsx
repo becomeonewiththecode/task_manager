@@ -4,12 +4,19 @@ import { useAuthStore } from '@/store/authStore';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAuth } from '@/hooks/useAuth';
 
-const NAV_LINKS = [
+const USER_NAV_LINKS = [
   { to: '/dashboard', label: 'Dashboard' },
   { to: '/tasks', label: 'Tasks' },
   { to: '/calendar', label: 'Calendar' },
   { to: '/analytics', label: 'Analytics' },
   { to: '/settings', label: 'Settings' },
+];
+
+const ADMIN_NAV_LINKS = [
+  { to: '/admin', label: 'Dashboard' },
+  { to: '/admin/users', label: 'Users' },
+  { to: '/admin/mail', label: 'Mail' },
+  { to: '/admin/health', label: 'Health' },
 ];
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
@@ -22,9 +29,13 @@ const navLinkClass = ({ isActive }: { isActive: boolean }) =>
 export function Layout() {
   useAuth();
   const logout = useAuthStore((s) => s.logout);
+  const user = useAuthStore((s) => s.user);
   const { isOnline } = useOnlineStatus();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const adminEmails = import.meta.env.VITE_ADMIN_EMAILS?.split(',').map((e: string) => e.trim().toLowerCase()) || [];
+  const isAdmin = user?.email && adminEmails.includes(user.email.toLowerCase());
 
   const handleLogout = () => {
     logout();
@@ -39,7 +50,7 @@ export function Layout() {
 
           {/* Desktop nav */}
           <nav className="hidden sm:flex items-center gap-1">
-            {NAV_LINKS.map(({ to, label }) => (
+            {(isAdmin ? ADMIN_NAV_LINKS : USER_NAV_LINKS).map(({ to, label }) => (
               <NavLink key={to} to={to} className={navLinkClass}>
                 {label}
               </NavLink>
@@ -72,7 +83,7 @@ export function Layout() {
         {/* Mobile dropdown */}
         {menuOpen && (
           <div className="sm:hidden border-t border-gray-200 dark:border-gray-700 py-2 px-4 space-y-1">
-            {NAV_LINKS.map(({ to, label }) => (
+            {(isAdmin ? ADMIN_NAV_LINKS : USER_NAV_LINKS).map(({ to, label }) => (
               <NavLink key={to} to={to} className={navLinkClass} onClick={() => setMenuOpen(false)}>
                 {label}
               </NavLink>

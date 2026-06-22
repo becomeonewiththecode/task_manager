@@ -15,6 +15,7 @@ const envSchema = z.object({
   VAPID_PUBLIC_KEY: z.string().optional(),
   VAPID_PRIVATE_KEY: z.string().optional(),
   VAPID_EMAIL: z.string().default('mailto:admin@taskmanager.local'),
+  ADMIN_EMAILS: z.string().default('admin@taskmanager.local'),
 });
 
 const parsed = envSchema.safeParse(process.env);

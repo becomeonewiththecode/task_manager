@@ -44,6 +44,7 @@ Users can
 - ✅ Priority levels (high, medium, low) with visual indicators
 - ✅ Task categories/tags for better organization
 - ✅ Recurring tasks with configurable intervals (daily, weekly, monthly)
+- ✅ Per-occurrence completion tracking for recurring tasks (RecurringCompletion model)
 - ✅ Subtasks and task dependencies
 - ✅ Task templates
 - ✅ Bulk operations (BulkActionBar component)
@@ -59,7 +60,7 @@ Users can
 - ✅ Import tasks from backup file (overwrites existing data on restore) — restores all fields including location, webLink, durationMinutes
 
 ### Notifications & Reminders
-- ❌ Notification system for task reminders and due dates
+- ✅ Push notification system for task reminders and due dates (15 min before due)
 
 ### Analytics & Tracking
 - ✅ Progress tracking / statistics dashboard (recharts, AnalyticsPage)
@@ -81,6 +82,14 @@ Users can
 
 ### Share
 - ✅ Task sharing via public links with expiration times (SharePage, TaskShare model)
+
+### Push Notifications
+- ✅ Backend notification scheduler (checks every 60s for tasks due in 15 minutes)
+- ✅ Push subscription management (subscribe/unsubscribe via Redis)
+- ✅ Frontend UI for enabling/disabling notifications (Settings > Notifications)
+- ✅ Service worker push handler with notification display
+- ✅ Notification retry on failure (email/push failures don't mark task as notified, allowing next cycle to retry)
+- ⏭ Browser push requires HTTPS (currently plain HTTP on local network)
 
 ### Testing
 - ❌ Unit/integration tests (Vitest + React Testing Library installed, no test files yet)
@@ -120,7 +129,7 @@ Users can
 - ✅ Structured logging (pino)
 - ✅ Error handling middleware with HTTP status codes
 - ✅ Health check endpoint (`GET /health`)
-- ❌ Centralized config validation — no `/src/config/` directory
+- ✅ Centralized config validation (`/src/config/index.ts` with Zod)
 
 ### Auth & Security
 - ✅ bcrypt password hashing
@@ -132,7 +141,7 @@ Users can
 
 ### Database
 - ✅ PostgreSQL with Prisma ORM
-- ✅ Full schema: Users, Tasks, Categories, Sessions, AuditLog, TimeEntries, TaskShares, TaskTemplates, TaskDependencies, TaskTags
+- ✅ Full schema: Users, Tasks, Categories, Sessions, AuditLog, TimeEntries, TaskShares, TaskTemplates, TaskDependencies, TaskTags, MailConfig, MailTemplate, SystemSetting, RecurringCompletion
 - ✅ Indexes on frequently queried columns
 - ✅ Connection pooling
 - ✅ Database migrations (Prisma)
@@ -140,10 +149,23 @@ Users can
 
 ### Performance
 - ✅ Redis caching layer (ioredis)
-- ❌ Background job queue (Bull/BullMQ) — needed for email notifications, recurring task generation
+- ❌ Background job queue (Bull/BullMQ) — needed for recurring task generation
 
 ### Notifications
-- ❌ Email notifications for task reminders — no mailer service
+- ✅ Email notifications via SMTP (nodemailer) with configurable templates
+- ✅ Web Push notifications for task reminders
+- ✅ Notification scheduler sends both push and email notifications 15 minutes before task is due
+- ✅ Notification retry: if push or email fails, the scheduler retries on the next cycle instead of permanently losing the reminder
+
+### Admin Panel
+- ✅ Admin middleware with email whitelist (`ADMIN_EMAILS` env var)
+- ✅ User management (list, view, edit, delete, ban/unban, reset password)
+- ✅ System statistics (users, sessions)
+- ✅ Health monitoring (database, Redis, uptime, memory)
+- ✅ Service management (view status, restart backend/frontend/db/redis via Docker socket)
+- ✅ Mail configuration (SMTP settings, test email, templates)
+- ✅ Activity logging and audit trail
+- ✅ Admin UI integrated into frontend (admin-only nav, no task/calendar/analytics)
 
 ### API Documentation
 - ❌ OpenAPI/Swagger spec and interactive UI
@@ -161,9 +183,10 @@ Users can
 - ✅ Volume mounts for DB persistence
 - ✅ nginx.conf mounted as volume — config changes take effect on `docker compose up -d --force-recreate frontend` without rebuilding the image
 - ✅ docker-compose.override.yml for local dev
-- ✅ Backend health check (`wget -qO- http://localhost:4000/health`) — `curl` not available in Alpine image
+- ✅ Backend health check (`curl -f http://localhost:4000/health`) — curl installed in production Docker image
 - ✅ Resource limits (memory) on db (512 MB) and redis (128 MB); backend and frontend uncapped
 - ✅ Frontend serves plain HTTP on port 3333 (no SSL) — simplifies local network access; HTTPS removed since no trusted cert
+- ✅ `VITE_ADMIN_EMAILS` build arg passed through Docker Compose for admin panel visibility
 - ⏭ CI/CD pipeline (GitHub Actions) — manual deploys via `docker-compose up -d` until Phase 2
 
 ---
@@ -176,9 +199,7 @@ Users can
 - ⏭ Advanced analytics with more charts and insights
 - ⏭ File attachments with cloud storage
 - ⏭ Third-party integrations (Slack, Google Calendar, Trello import)
-- ⏭ Voice input for task title (hook + UI built; blocked — Web Speech API requires HTTPS; app currently serves plain HTTP)
-- ⏭ Push notifications via Web Push API (requires HTTPS; app currently serves plain HTTP on local network)
-- ✅ Customizable keyboard shortcuts (Settings > Shortcuts tab — click to reassign any key)
+- ⏭ Voice input for task title (hook + UI built; blocked — Web Speech API requires HTTPS)
 - ⏭ AI-powered task suggestions
 - ⏭ Custom fields per task
 - ⏭ CI/CD pipeline
@@ -187,11 +208,12 @@ Users can
 
 ## Remaining Phase 1 Work (Priority Order)
 
-1. ❌ Notification / reminder system (frontend UI + backend trigger)
-2. ❌ Background job queue (Bull/BullMQ) — prerequisite for notifications and recurring tasks
-3. ❌ OpenAPI/Swagger documentation
-4. ❌ Additional i18n locales beyond English
-5. ✅ 4 themes — Light, Dark, Ocean, Forest all functional; moved to Settings > Appearance
-6. ❌ Test coverage (backend unit + API tests, frontend component + E2E tests)
-7. ❌ Centralized env config validation (`/src/config/`)
-8. ❌ OAuth social login (Gmail, GitHub, Facebook)
+1. ✅ Notification / reminder system (frontend UI + backend push + email via SMTP) — implemented, requires HTTPS for browser push
+2. ✅ Admin panel (user management, mail configuration, monitoring) — implemented
+3. ❌ Background job queue (Bull/BullMQ) — needed for recurring task generation
+4. ❌ OpenAPI/Swagger documentation
+5. ❌ Additional i18n locales beyond English
+6. ✅ 4 themes — Light, Dark, Ocean, Forest all functional; moved to Settings > Appearance
+7. ❌ Test coverage (backend unit + API tests, frontend component + E2E tests)
+8. ✅ Centralized env config validation (`/src/config/index.ts` with Zod)
+9. ❌ OAuth social login (Gmail, GitHub, Facebook)

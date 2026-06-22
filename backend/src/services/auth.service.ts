@@ -4,6 +4,7 @@ import qrcode from 'qrcode';
 import { hashPassword, comparePassword, meetsStrengthRequirements } from '../utils/password';
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from '../utils/jwt';
 import { AppError } from '../middleware/error.middleware';
+import { writeAudit } from '../utils/audit';
 import { config } from '../config';
 
 const prisma = new PrismaClient();
@@ -25,6 +26,11 @@ export async function register(email: string, username: string, password: string
   const user = await prisma.user.create({
     data: { email, username, passwordHash },
     select: { id: true, email: true, username: true, totpEnabled: true, createdAt: true },
+  });
+
+  await writeAudit(prisma, user.id, 'register', 'user', user.id, {
+    email: user.email,
+    username: user.username,
   });
 
   return user;
@@ -50,12 +56,21 @@ export async function login(email: string, password: string, totpCode?: string) 
           : null,
       },
     });
+    await writeAudit(prisma, user.id, 'login_failed', 'user', user.id, {
+      email,
+      reason: 'invalid_password',
+      failedAttempts: failedLoginCount,
+    });
     throw new AppError(401, 'Invalid credentials');
   }
 
   if (user.totpEnabled) {
     if (!totpCode) throw new AppError(400, 'TOTP code required');
     if (!authenticator.verify({ token: totpCode, secret: user.totpSecret! })) {
+      await writeAudit(prisma, user.id, 'login_failed', 'user', user.id, {
+        email,
+        reason: 'invalid_totp',
+      });
       throw new AppError(401, 'Invalid 2FA code');
     }
   }
@@ -63,6 +78,10 @@ export async function login(email: string, password: string, totpCode?: string) 
   await prisma.user.update({
     where: { id: user.id },
     data: { failedLoginCount: 0, lockedUntil: null },
+  });
+
+  await writeAudit(prisma, user.id, 'login', 'user', user.id, {
+    email,
   });
 
   return issueTokens(user.id, user.email);
@@ -89,7 +108,16 @@ export async function refresh(refreshToken: string) {
 }
 
 export async function logout(refreshToken: string) {
+  const session = await prisma.session.findUnique({
+    where: { refreshToken },
+    select: { userId: true },
+  });
+
   await prisma.session.deleteMany({ where: { refreshToken } });
+
+  if (session) {
+    await writeAudit(prisma, session.userId, 'logout', 'user', session.userId, {});
+  }
 }
 
 export async function setupTotp(userId: string) {
@@ -99,6 +127,9 @@ export async function setupTotp(userId: string) {
   const qrDataUrl = await qrcode.toDataURL(otpauth);
 
   await prisma.user.update({ where: { id: userId }, data: { totpSecret: secret } });
+
+  await writeAudit(prisma, userId, 'totp_setup', 'user', userId, {});
+
   return { qrDataUrl, secret };
 }
 
@@ -109,6 +140,7 @@ export async function enableTotp(userId: string, code: string) {
     throw new AppError(401, 'Invalid TOTP code');
   }
   await prisma.user.update({ where: { id: userId }, data: { totpEnabled: true } });
+  await writeAudit(prisma, userId, 'totp_enable', 'user', userId, {});
 }
 
 export async function disableTotp(userId: string, code: string) {
@@ -121,6 +153,7 @@ export async function disableTotp(userId: string, code: string) {
     where: { id: userId },
     data: { totpEnabled: false, totpSecret: null },
   });
+  await writeAudit(prisma, userId, 'totp_disable', 'user', userId, {});
 }
 
 async function issueTokens(userId: string, email: string) {

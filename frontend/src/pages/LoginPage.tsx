@@ -20,7 +20,7 @@ export function LoginPage() {
   const onSubmit = async (values: FormValues) => {
     try {
       await login(values.email, values.password, values.totpCode || undefined);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err: any) {
       if (err.response?.status === 400 && err.response.data?.error?.includes('TOTP')) {
         setNeedsTotp(true);

@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { hashPassword, comparePassword, meetsStrengthRequirements } from '../utils/password';
 import { AppError } from '../middleware/error.middleware';
+import { writeAudit } from '../utils/audit';
 
 const prisma = new PrismaClient();
 
@@ -19,11 +20,19 @@ export async function updateEmail(userId: string, newEmail: string, password: st
   }
   const existing = await prisma.user.findUnique({ where: { email: newEmail } });
   if (existing) throw new AppError(409, 'Email already in use');
-  return prisma.user.update({
+
+  const result = await prisma.user.update({
     where: { id: userId },
     data: { email: newEmail },
     select: { id: true, email: true, username: true },
   });
+
+  await writeAudit(prisma, userId, 'update_email', 'user', userId, {
+    previousEmail: user.email,
+    newEmail,
+  });
+
+  return result;
 }
 
 export async function updatePassword(userId: string, currentPassword: string, newPassword: string) {
@@ -38,6 +47,7 @@ export async function updatePassword(userId: string, currentPassword: string, ne
     where: { id: userId },
     data: { passwordHash: await hashPassword(newPassword) },
   });
+  await writeAudit(prisma, userId, 'update_password', 'user', userId, {});
 }
 
 export async function deleteAccount(userId: string, password: string) {
@@ -45,6 +55,11 @@ export async function deleteAccount(userId: string, password: string) {
   if (!(await comparePassword(password, user.passwordHash))) {
     throw new AppError(401, 'Invalid password');
   }
+
+  await writeAudit(prisma, userId, 'delete_account', 'user', userId, {
+    email: user.email,
+  });
+
   await prisma.user.update({ where: { id: userId }, data: { deletedAt: new Date() } });
 }
 
@@ -140,6 +155,12 @@ export async function exportData(userId: string) {
       select: { name: true, description: true, priority: true, recurring: true, categoryIds: true },
     }),
   ]);
+
+  await writeAudit(prisma, userId, 'data_export', 'user', userId, {
+    categories: categories.length,
+    tasks: tasks.length,
+    templates: taskTemplates.length,
+  });
 
   return {
     version: '1',
@@ -246,7 +267,11 @@ export async function importData(userId: string, backup: any) {
     });
   }
 
-  return { imported: { categories: categoryIdMap.size, tasks: taskIdMap.size, taskTemplates: taskTemplates.length } };
+  const imported = { categories: categoryIdMap.size, tasks: taskIdMap.size, taskTemplates: taskTemplates.length };
+
+  await writeAudit(prisma, userId, 'data_import', 'user', userId, imported);
+
+  return { imported };
 }
 
 export async function getAuditLog(
